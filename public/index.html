@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/img/modern-noise-machine-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+  href="https://fonts.googleapis.com/css2?family=Doto:wght@900&family=Kode+Mono&family=Noto+Color+Emoji&family=Noto+Emoji&display=swap"
+  rel="stylesheet">
+<link href='/style.css' rel='stylesheet'>
+<link rel="manifest" href="/manifest.json">
+<title>Modern noise machine</title>
+
+<audio id="audio-source" src="/audio/background.mp3" preload="auto"></audio>
+
+<main>
+  <h1 id="noise-machine-title">Modern noise <abbr title="Audio Interface">AI</abbr>
+    <br><span>ひどい気分</span>
+  </h1>
+
+  <section id="lcd-screen">
+    <span id="white-icon" class="lcd-icon lcd-icon-on">⬜</span>
+    <span id="pink-icon" class="lcd-icon">🩷</span>
+    <span id="brown-icon" class="lcd-icon">🟤</span>
+    <span id="screaming-icon" class="lcd-icon">😱</span>
+    <span id="building-icon" class="lcd-icon">🚧</span>
+    <span id="traffic-icon" class="lcd-icon">🚘</span>
+    <span id="beeping-icon" class="lcd-icon">🚨</span>
+    <span class="lcd-text">
+      <span class="lcd-on">White</span>
+      <span class="lcd-off"></span>
+      &nbsp;
+    </span>
+    <span id="play-icon" class="lcd-icon">▶</span>
+  </section>
+
+  <section id="buttons">
+    <input id="volume-slider" aria-label="Volume" type="range" min="0" max="2" step="0.01" value="1" orient="vertical">
+    
+    <button id="white" aria-label="White noise" class="noise-button"><span class="grey">W</span></button>
+    <button id="pink" aria-label="Pink noise" class="noise-button"><span class="grey">P</span></button>
+    <button id="brown" aria-label="Brown noise" class="noise-button"><span class="grey">B</span></button>
+
+    <button id="screaming" aria-label="Screaming noise" class="noise-button"><span class="black">👄</span></button>
+    <button id="building" aria-label="Building noise" class="noise-button"><span class="black">🛠</span></button>
+    <button id="traffic" aria-label="Traffic noise" class="noise-button"><span class="black">🚗</span></button>
+
+
+    <button id="beeping" aria-label="Beeping noise" class="noise-button"><span class="black">📟</span></button>
+
+    <button id="pause" aria-label="Pause noise" class="noise-button"><span class="orange">⏸</span></button>
+    <button id="play" aria-label="Play noise" class="noise-button"><span class="orange">▶</span></button>
+  </section>
+</main>
+<footer>
+  <p></p>👋 Built by <a href="https://rowan.fyi/posts/modern-noise">rowan.fyi</a>
+</footer>
+<script>
+  'use strict';
+  if (location.protocol !== 'https:') {
+    location.protocol = 'https:';
+  }
+</script>
+<script defer type="text/javascript" src="/bring-the-noise.js"></script>
