@@ -5,6 +5,7 @@ let audioContext = null;
 let noiseNode = null;
 let gainNode = null;
 let gainLevel = 1;
+let audioBufferCache = new Map();
 
 const screamingUrls = [
   '/audio/screams/132106__sironboy__woman-scream.aac',
@@ -283,15 +284,21 @@ function createBeepingNoise() {
 }
 
 async function loadAudioBuffers(audioFileUrls) {
-  const promises = audioFileUrls.map(async (url) => {
-    try {
-      const response = await fetch(url);
-      const arrayBuffer = await response.arrayBuffer();
-      return await audioContext.decodeAudioData(arrayBuffer);
-    } catch (error) {
-      console.error('Error loading audio file:', error);
-      return null;
+  const promises = audioFileUrls.map((url) => {
+    if (!audioBufferCache.has(url)) {
+      const fetchAndDecode = async () => {
+        try {
+          const response = await fetch(url);
+          const arrayBuffer = await response.arrayBuffer();
+          return await audioContext.decodeAudioData(arrayBuffer);
+        } catch (error) {
+          console.error('Error loading audio file:', error);
+          return null;
+        }
+      };
+      audioBufferCache.set(url, fetchAndDecode());
     }
+    return audioBufferCache.get(url);
   });
 
   const buffers = await Promise.all(promises);
