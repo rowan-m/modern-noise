@@ -189,7 +189,7 @@ function pinkNoiseBuffer(bufferSize, output) {
   let b0, b1, b2, b3, b4, b5, b6, white;
   b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
 
-  for (var i = 0; i < bufferSize; i++) {
+  for (let i = 0; i < bufferSize; i++) {
     white = Math.random() * 2 - 1;
     b0 = 0.99886 * b0 + white * 0.0555179;
     b1 = 0.99332 * b1 + white * 0.0750759;
@@ -207,7 +207,7 @@ function brownNoiseBuffer(bufferSize, output) {
   let lastOut = 0.0;
   let white;
 
-  for (var i = 0; i < bufferSize; i++) {
+  for (let i = 0; i < bufferSize; i++) {
     white = Math.random() * 2 - 1;
     output[i] = (lastOut + (0.02 * white)) / 1.02;
     lastOut = output[i];
