@@ -72,9 +72,11 @@ const buildingUrls = [
 ];
 
 let audioBuffers = [];
+const audioBufferCache = new Map();
 
 let isPlaying = false;
 let noiseType = 'white';
+let scheduledTimeout = null;
 
 // Grab elements and set up listeners
 const backgroundAudio = document.querySelector('audio');
@@ -219,7 +221,6 @@ async function createScreamingNoise() {
   audioBuffers = [];
   await loadAudioBuffers(screamingUrls);
   scheduleNextAudioClip();
-  setTimeout(scheduleNextAudioClip, (Math.random() * .5 + 1) * 1000);
 }
 
 async function createTrafficNoise() {
@@ -248,14 +249,12 @@ async function createTrafficNoise() {
   audioBuffers = [];
   await loadAudioBuffers(trafficUrls);
   scheduleNextAudioClip();
-  setTimeout(scheduleNextAudioClip, (Math.random() * .5 + 1) * 1000);
 }
 
 async function createBuildingNoise() {
   audioBuffers = [];
   await loadAudioBuffers(buildingUrls);
   scheduleNextAudioClip();
-  setTimeout(scheduleNextAudioClip, (Math.random() * .5 + 1) * 1000);
 }
 
 let beepingTimeout = null;
@@ -284,10 +283,15 @@ function createBeepingNoise() {
 
 async function loadAudioBuffers(audioFileUrls) {
   const promises = audioFileUrls.map(async (url) => {
+    if (audioBufferCache.has(url)) {
+      return audioBufferCache.get(url);
+    }
     try {
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
-      return await audioContext.decodeAudioData(arrayBuffer);
+      const decodedBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      audioBufferCache.set(url, decodedBuffer);
+      return decodedBuffer;
     } catch (error) {
       console.error('Error loading audio file:', error);
       return null;
@@ -304,7 +308,7 @@ function scheduleNextAudioClip() {
   }
   playRandomAudioClip();
   const nextInterval = Math.random() * .5 + 1;
-  setTimeout(scheduleNextAudioClip, nextInterval * 1000);
+  scheduledTimeout = setTimeout(scheduleNextAudioClip, nextInterval * 1000);
 }
 
 let audioSources = [];
@@ -341,6 +345,11 @@ function destructNoiseType() {
   if (beepingTimeout) {
     clearTimeout(beepingTimeout);
     beepingTimeout = null;
+  }
+
+  if (scheduledTimeout) {
+    clearTimeout(scheduledTimeout);
+    scheduledTimeout = null;
   }
 
   audioSources.forEach((source) => {

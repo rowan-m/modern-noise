@@ -1,0 +1,3 @@
+## 2024-03-15 - Audio Buffer Caching and Recursive setTimeout Leaks
+**Learning:** The application was downloading and decoding large arrays of audio files repeatedly when switching between noise types (Screaming, Traffic, Building). Furthermore, the recursive scheduling function `scheduleNextAudioClip()` was being double-spawned without tracking the `setTimeout` ID, resulting in an exponential CPU and memory leak on mode switch.
+**Action:** Implemented an `audioBufferCache` Map to memorize decoded audio buffers, eliminating redundant network requests and processing. Tracked `scheduleNextAudioClip`'s timeout in a global `scheduledTimeout` variable, and explicitly cleared it in `destructNoiseType()` to ensure only one scheduling loop runs at a time.
