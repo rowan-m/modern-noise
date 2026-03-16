@@ -180,6 +180,11 @@ h1>span {
     .1rem .1rem .2rem .1rem rgba(240, 240, 240, .05) inset;
 }
 
+#volume-slider:focus-visible {
+  outline: calc(var(--unit)*.08) solid rgb(220, 84, 47);
+  outline-offset: calc(var(--unit)*.1);
+}
+
 .noise-button {
   width: calc(var(--unit)*2);
   height: calc(var(--unit)*2);
@@ -190,6 +195,11 @@ h1>span {
   touch-action: manipulation;
   user-select: none;
   cursor: pointer;
+}
+
+.noise-button:focus-visible {
+  outline: calc(var(--unit)*.08) solid rgb(220, 84, 47);
+  outline-offset: calc(var(--unit)*.1);
 }
 
 .noise-button>span {
