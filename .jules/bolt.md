@@ -1,0 +1,3 @@
+## 2024-06-25 - Fix Recursive Timeout Memory Leaks
+**Learning:** In audio-heavy web applications relying on `setTimeout` for recursive audio scheduling, un-cleared timeouts can cause exponential memory and CPU leaks when tracks are switched rapidly. Specifically, `scheduleNextAudioClip()` recursively calling itself while a redundant `setTimeout` initialized parallel execution threads that were never destroyed upon switching noise types.
+**Action:** Always maintain a reference to recursive scheduling timeouts (e.g., `global scheduledTimeout`) and clear them consistently in teardown functions like `destructNoiseType()` before switching contexts. Avoid redundant parallel initialization of recursive loops.
