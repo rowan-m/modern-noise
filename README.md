@@ -5,9 +5,35 @@ A noise machine for today's world.
 - Try it on [modern-noise.web.app](https://modern-noise.web.app/)
 - Read about it on [rowan.fyi](https://rowan.fyi/posts/modern-noise/)
 
+## Run locally
+
+To install dependencies and start the development server:
+
+```bash
+npm install
+npm run dev
+```
+
+## Quality Control
+
+Ensure any changes adhere to the project's formatting and quality standards.
+
+Format the codebase:
+
+```bash
+npm run format
+```
+
+Run all checks (formatting, linting, and security) to verify your changes:
+
+```bash
+npm run check
+```
+
 ## Sounds
 
 ### Screams
+
 https://freesound.org/people/akridiy/sounds/759454/  
 https://freesound.org/people/AlSarcoli007/sounds/220365/  
 https://freesound.org/people/AlSarcoli007/sounds/220369/  
@@ -29,9 +55,10 @@ https://freesound.org/people/TheSubber13/sounds/239900/
 https://freesound.org/people/tomattka/sounds/400183/  
 https://freesound.org/people/tonsil5/sounds/416541/  
 https://freesound.org/people/Valerie-Vivegnis/sounds/767890/  
-https://freesound.org/people/Vitouliss/sounds/173088/  
+https://freesound.org/people/Vitouliss/sounds/173088/
 
 ### Traffic
+
 https://freesound.org/people/deleted_user_2104797/sounds/164625/  
 https://freesound.org/people/LaurenPonder/sounds/635681/  
 https://freesound.org/people/iainmccurdy/sounds/643125/  
@@ -48,9 +75,10 @@ https://freesound.org/people/G_M_D_THREE/sounds/513527/
 https://freesound.org/people/hyderpotter/sounds/268809/  
 https://freesound.org/people/AudioPapkin/sounds/716552/  
 https://freesound.org/people/jorgens_/sounds/770985/  
-https://freesound.org/people/akahukas/sounds/708707/  
+https://freesound.org/people/akahukas/sounds/708707/
 
 ### Construction
+
 https://freesound.org/people/ldezem/sounds/386300/  
 https://freesound.org/people/ldezem/sounds/386239/  
 https://freesound.org/people/WIM/sounds/17908/  
@@ -67,4 +95,4 @@ https://freesound.org/people/lextrack/sounds/273722/
 https://freesound.org/people/moxobna/sounds/40158/  
 https://freesound.org/people/jorickhoofd/sounds/160045/  
 https://freesound.org/people/Sparrer/sounds/50506/  
-https://freesound.org/people/Rock%20Savage/sounds/59263/  
+https://freesound.org/people/Rock%20Savage/sounds/59263/
