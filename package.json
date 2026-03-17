@@ -1,14 +1,29 @@
 {
   "name": "modern-noise",
   "version": "1.0.0",
+  "type": "module",
   "description": "A modern noise machine for a modern world.",
   "private": true,
   "license": "Apache-2.0",
   "scripts": {
     "dev": "serve public",
-    "start": "npm run dev"
+    "lint": "eslint public",
+    "lint:sonar": "eslint public -c eslint.sonar.config.js",
+    "lint:security": "eslint public -c eslint.security.config.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run format:check && npm run lint && npm run lint:sonar && npm run lint:security"
   },
   "devDependencies": {
-    "serve": "^14.2.4"
+    "@eslint/css": "^1.0.0",
+    "@eslint/js": "^10.0.1",
+    "@eslint/json": "^1.1.0",
+    "eslint": "^10.0.3",
+    "eslint-plugin-no-unsanitized": "^4.1.5",
+    "eslint-plugin-security": "^4.0.0",
+    "eslint-plugin-sonarjs": "^4.0.2",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "serve": "^14.2.6"
   }
 }
