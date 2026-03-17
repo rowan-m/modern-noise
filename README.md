@@ -10,11 +10,11 @@ A noise machine for today's world.
 To install dependencies and start the development server:
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-## Quality Control
+## Contributing
 
 Ensure any changes adhere to the project's formatting and quality standards.
 
@@ -28,6 +28,13 @@ Run all checks (formatting, linting, and security) to verify your changes:
 
 ```bash
 npm run check
+```
+
+If you add new dependencies, make sure you run an install and commit the lock file:
+
+```bash
+npm install
+git add package.json package-lock.json
 ```
 
 ## Sounds
