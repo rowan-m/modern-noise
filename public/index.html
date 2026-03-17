@@ -59,7 +59,7 @@
 </footer>
 <script>
   'use strict';
-  if (location.protocol !== 'https:') {
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
     location.protocol = 'https:';
   }
 </script>
