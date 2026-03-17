@@ -3,6 +3,7 @@
 // Initialise shared variables
 let audioContext = null;
 let noiseNode = null;
+let trafficFilter = null;
 let gainNode = null;
 let gainLevel = 1;
 
@@ -228,9 +229,8 @@ function brownNoiseBuffer(bufferSize, output) {
 
 async function createScreamingNoise() {
   audioBuffers = [];
-  await loadAudioBuffers(screamingUrls);
-  scheduleNextAudioClip();
-  setTimeout(scheduleNextAudioClip, (Math.random() * 0.5 + 1) * 1000);
+  await loadAudioBuffers(screamingUrls, "screaming");
+  if (noiseType === "screaming") scheduleNextAudioClip();
 }
 
 async function createTrafficNoise() {
@@ -247,33 +247,32 @@ async function createTrafficNoise() {
   });
 
   // Apply a low-pass filter to simulate low-frequency rumble
-  const lowPassFilter = audioContext.createBiquadFilter();
-  lowPassFilter.type = "lowpass";
-  lowPassFilter.frequency.value = 200; // Cutoff frequency for the low-pass filter
+  trafficFilter = audioContext.createBiquadFilter();
+  trafficFilter.type = "lowpass";
+  trafficFilter.frequency.value = 200; // Cutoff frequency for the low-pass filter
 
   noiseNode = audioContext.createBufferSource();
   noiseNode.buffer = noiseBuffer;
   noiseNode.loop = true;
 
-  noiseNode.connect(lowPassFilter);
-  lowPassFilter.connect(gainNode);
+  noiseNode.connect(trafficFilter);
+  trafficFilter.connect(gainNode);
 
   noiseNode.start();
 
   audioBuffers = [];
-  await loadAudioBuffers(trafficUrls);
-  scheduleNextAudioClip();
-  setTimeout(scheduleNextAudioClip, (Math.random() * 0.5 + 1) * 1000);
+  await loadAudioBuffers(trafficUrls, "traffic");
+  if (noiseType === "traffic") scheduleNextAudioClip();
 }
 
 async function createBuildingNoise() {
   audioBuffers = [];
-  await loadAudioBuffers(buildingUrls);
-  scheduleNextAudioClip();
-  setTimeout(scheduleNextAudioClip, (Math.random() * 0.5 + 1) * 1000);
+  await loadAudioBuffers(buildingUrls, "building");
+  if (noiseType === "building") scheduleNextAudioClip();
 }
 
 let beepingTimeout = null;
+let clipTimeout = null;
 
 function createBeepingNoise() {
   const beepingOscillator = audioContext.createOscillator();
@@ -298,12 +297,18 @@ function createBeepingNoise() {
     audioContext.currentTime + beepInterval,
   ); // Ramp down quickly
 
+  beepingOscillator.stop(audioContext.currentTime + beepInterval + 0.1);
+  beepingOscillator.onended = () => {
+    beepingOscillator.disconnect();
+    beepGainNode.disconnect();
+  };
+
   beepingTimeout = setTimeout(() => {
     createBeepingNoise();
   }, beepInterval * 3000);
 }
 
-async function loadAudioBuffers(audioFileUrls) {
+async function loadAudioBuffers(audioFileUrls, expectedNoiseType) {
   const promises = audioFileUrls.map(async (url) => {
     try {
       const response = await fetch(url);
@@ -316,7 +321,9 @@ async function loadAudioBuffers(audioFileUrls) {
   });
 
   const buffers = await Promise.all(promises);
-  audioBuffers = buffers.filter((buffer) => buffer !== null);
+  if (noiseType === expectedNoiseType) {
+    audioBuffers = buffers.filter((buffer) => buffer !== null);
+  }
 }
 
 function scheduleNextAudioClip() {
@@ -325,7 +332,7 @@ function scheduleNextAudioClip() {
   }
   playRandomAudioClip();
   const nextInterval = Math.random() * 0.5 + 1;
-  setTimeout(scheduleNextAudioClip, nextInterval * 1000);
+  clipTimeout = setTimeout(scheduleNextAudioClip, nextInterval * 1000);
 }
 
 let audioSources = [];
@@ -343,6 +350,7 @@ function playRandomAudioClip() {
 
   audioSources.push(audioSource);
   audioSource.onended = () => {
+    audioSource.disconnect();
     const index = audioSources.indexOf(audioSource);
     if (index > -1) {
       audioSources.splice(index, 1);
@@ -359,9 +367,19 @@ function destructNoiseType() {
     noiseNode = null;
   }
 
+  if (trafficFilter) {
+    trafficFilter.disconnect();
+    trafficFilter = null;
+  }
+
   if (beepingTimeout) {
     clearTimeout(beepingTimeout);
     beepingTimeout = null;
+  }
+
+  if (clipTimeout) {
+    clearTimeout(clipTimeout);
+    clipTimeout = null;
   }
 
   audioSources.forEach((source) => {
@@ -435,8 +453,8 @@ document
   .addEventListener("click", () => setNoiseType("beeping"));
 document.querySelector("#volume-slider").addEventListener("input", (ev) => {
   gainLevel = 2 - ev.target.value;
-  if (isPlaying) {
-    gainNode.gain.value = gainLevel;
+  if (isPlaying && gainNode) {
+    gainNode.gain.setTargetAtTime(gainLevel, audioContext.currentTime, 0.05);
   }
 });
 
