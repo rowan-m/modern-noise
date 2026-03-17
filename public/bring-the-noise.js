@@ -242,9 +242,9 @@ async function createTrafficNoise() {
   );
   const output = noiseBuffer.getChannelData(0);
   pinkNoiseBuffer(bufferSize, output);
-  output.forEach((v, i) => {
+  for (let i = 0; i < bufferSize; i++) {
     output[i] *= 1.5;
-  });
+  }
 
   // Apply a low-pass filter to simulate low-frequency rumble
   trafficFilter = audioContext.createBiquadFilter();
