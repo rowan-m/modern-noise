@@ -230,7 +230,6 @@ async function createScreamingNoise() {
   audioBuffers = [];
   await loadAudioBuffers(screamingUrls);
   scheduleNextAudioClip();
-  setTimeout(scheduleNextAudioClip, (Math.random() * 0.5 + 1) * 1000);
 }
 
 async function createTrafficNoise() {
@@ -263,17 +262,16 @@ async function createTrafficNoise() {
   audioBuffers = [];
   await loadAudioBuffers(trafficUrls);
   scheduleNextAudioClip();
-  setTimeout(scheduleNextAudioClip, (Math.random() * 0.5 + 1) * 1000);
 }
 
 async function createBuildingNoise() {
   audioBuffers = [];
   await loadAudioBuffers(buildingUrls);
   scheduleNextAudioClip();
-  setTimeout(scheduleNextAudioClip, (Math.random() * 0.5 + 1) * 1000);
 }
 
 let beepingTimeout = null;
+let clipTimeout = null;
 
 function createBeepingNoise() {
   const beepingOscillator = audioContext.createOscillator();
@@ -325,7 +323,7 @@ function scheduleNextAudioClip() {
   }
   playRandomAudioClip();
   const nextInterval = Math.random() * 0.5 + 1;
-  setTimeout(scheduleNextAudioClip, nextInterval * 1000);
+  clipTimeout = setTimeout(scheduleNextAudioClip, nextInterval * 1000);
 }
 
 let audioSources = [];
@@ -362,6 +360,11 @@ function destructNoiseType() {
   if (beepingTimeout) {
     clearTimeout(beepingTimeout);
     beepingTimeout = null;
+  }
+
+  if (clipTimeout) {
+    clearTimeout(clipTimeout);
+    clipTimeout = null;
   }
 
   audioSources.forEach((source) => {
