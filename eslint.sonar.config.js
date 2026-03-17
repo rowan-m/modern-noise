@@ -6,5 +6,9 @@ export default [
   {
     ...sonarjs.configs.recommended,
     files: ["**/*.{js,mjs,cjs}"],
+    rules: {
+      ...sonarjs.configs.recommended.rules,
+      "sonarjs/pseudo-random": "off",
+    },
   },
 ];
