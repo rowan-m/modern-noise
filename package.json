@@ -1,0 +1,14 @@
+{
+  "name": "modern-noise",
+  "version": "1.0.0",
+  "description": "A modern noise machine for a modern world.",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "serve public",
+    "start": "npm run dev"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}
