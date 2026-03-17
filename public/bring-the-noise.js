@@ -241,6 +241,7 @@ async function createTrafficNoise() {
   );
   const output = noiseBuffer.getChannelData(0);
   pinkNoiseBuffer(bufferSize, output);
+  // ⚡ Optimization: Use a standard for loop instead of .forEach() to rapidly iterate over the Float32Array
   for (let i = 0; i < bufferSize; i++) {
     output[i] *= 1.5;
   }
