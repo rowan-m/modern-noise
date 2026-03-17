@@ -229,8 +229,8 @@ function brownNoiseBuffer(bufferSize, output) {
 
 async function createScreamingNoise() {
   audioBuffers = [];
-  await loadAudioBuffers(screamingUrls);
-  scheduleNextAudioClip();
+  await loadAudioBuffers(screamingUrls, "screaming");
+  if (noiseType === "screaming") scheduleNextAudioClip();
 }
 
 async function createTrafficNoise() {
@@ -261,14 +261,14 @@ async function createTrafficNoise() {
   noiseNode.start();
 
   audioBuffers = [];
-  await loadAudioBuffers(trafficUrls);
-  scheduleNextAudioClip();
+  await loadAudioBuffers(trafficUrls, "traffic");
+  if (noiseType === "traffic") scheduleNextAudioClip();
 }
 
 async function createBuildingNoise() {
   audioBuffers = [];
-  await loadAudioBuffers(buildingUrls);
-  scheduleNextAudioClip();
+  await loadAudioBuffers(buildingUrls, "building");
+  if (noiseType === "building") scheduleNextAudioClip();
 }
 
 let beepingTimeout = null;
@@ -308,7 +308,7 @@ function createBeepingNoise() {
   }, beepInterval * 3000);
 }
 
-async function loadAudioBuffers(audioFileUrls) {
+async function loadAudioBuffers(audioFileUrls, expectedNoiseType) {
   const promises = audioFileUrls.map(async (url) => {
     try {
       const response = await fetch(url);
@@ -321,7 +321,9 @@ async function loadAudioBuffers(audioFileUrls) {
   });
 
   const buffers = await Promise.all(promises);
-  audioBuffers = buffers.filter((buffer) => buffer !== null);
+  if (noiseType === expectedNoiseType) {
+    audioBuffers = buffers.filter((buffer) => buffer !== null);
+  }
 }
 
 function scheduleNextAudioClip() {
@@ -348,6 +350,7 @@ function playRandomAudioClip() {
 
   audioSources.push(audioSource);
   audioSource.onended = () => {
+    audioSource.disconnect();
     const index = audioSources.indexOf(audioSource);
     if (index > -1) {
       audioSources.splice(index, 1);
@@ -450,8 +453,8 @@ document
   .addEventListener("click", () => setNoiseType("beeping"));
 document.querySelector("#volume-slider").addEventListener("input", (ev) => {
   gainLevel = 2 - ev.target.value;
-  if (isPlaying) {
-    gainNode.gain.value = gainLevel;
+  if (isPlaying && gainNode) {
+    gainNode.gain.setTargetAtTime(gainLevel, audioContext.currentTime, 0.05);
   }
 });
 
