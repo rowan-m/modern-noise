@@ -3,6 +3,7 @@
 // Initialise shared variables
 let audioContext = null;
 let noiseNode = null;
+let trafficFilter = null;
 let gainNode = null;
 let gainLevel = 1;
 
@@ -246,16 +247,16 @@ async function createTrafficNoise() {
   });
 
   // Apply a low-pass filter to simulate low-frequency rumble
-  const lowPassFilter = audioContext.createBiquadFilter();
-  lowPassFilter.type = "lowpass";
-  lowPassFilter.frequency.value = 200; // Cutoff frequency for the low-pass filter
+  trafficFilter = audioContext.createBiquadFilter();
+  trafficFilter.type = "lowpass";
+  trafficFilter.frequency.value = 200; // Cutoff frequency for the low-pass filter
 
   noiseNode = audioContext.createBufferSource();
   noiseNode.buffer = noiseBuffer;
   noiseNode.loop = true;
 
-  noiseNode.connect(lowPassFilter);
-  lowPassFilter.connect(gainNode);
+  noiseNode.connect(trafficFilter);
+  trafficFilter.connect(gainNode);
 
   noiseNode.start();
 
@@ -295,6 +296,12 @@ function createBeepingNoise() {
     0,
     audioContext.currentTime + beepInterval,
   ); // Ramp down quickly
+
+  beepingOscillator.stop(audioContext.currentTime + beepInterval + 0.1);
+  beepingOscillator.onended = () => {
+    beepingOscillator.disconnect();
+    beepGainNode.disconnect();
+  };
 
   beepingTimeout = setTimeout(() => {
     createBeepingNoise();
@@ -355,6 +362,11 @@ function destructNoiseType() {
     noiseNode.stop();
     noiseNode.disconnect();
     noiseNode = null;
+  }
+
+  if (trafficFilter) {
+    trafficFilter.disconnect();
+    trafficFilter = null;
   }
 
   if (beepingTimeout) {
