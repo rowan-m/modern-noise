@@ -74,6 +74,10 @@ const buildingUrls = [
 
 let audioBuffers = [];
 
+// Performance: Cache audio and generated buffers
+const audioBufferCache = new Map();
+const noiseBufferCache = new Map();
+
 let isPlaying = false;
 let noiseType = "white";
 
@@ -175,14 +179,18 @@ function buildNoiseType() {
 
 function createColouredNoise(createBufferFunction) {
   const bufferSize = audioContext.sampleRate * 10;
-  const noiseBuffer = audioContext.createBuffer(
-    1,
-    bufferSize,
-    audioContext.sampleRate,
-  );
-  const output = noiseBuffer.getChannelData(0);
+  let noiseBuffer = noiseBufferCache.get(createBufferFunction.name);
 
-  createBufferFunction(bufferSize, output);
+  if (!noiseBuffer) {
+    noiseBuffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate,
+    );
+    const output = noiseBuffer.getChannelData(0);
+    createBufferFunction(bufferSize, output);
+    noiseBufferCache.set(createBufferFunction.name, noiseBuffer);
+  }
 
   noiseNode = audioContext.createBufferSource();
   noiseNode.buffer = noiseBuffer;
@@ -234,15 +242,20 @@ async function createScreamingNoise() {
 
 async function createTrafficNoise() {
   const bufferSize = audioContext.sampleRate * 10;
-  const noiseBuffer = audioContext.createBuffer(
-    1,
-    bufferSize,
-    audioContext.sampleRate,
-  );
-  const output = noiseBuffer.getChannelData(0);
-  pinkNoiseBuffer(bufferSize, output);
-  for (let i = 0; i < bufferSize; i++) {
-    output[i] *= 1.5;
+  let noiseBuffer = noiseBufferCache.get("trafficPinkNoise");
+
+  if (!noiseBuffer) {
+    noiseBuffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate,
+    );
+    const output = noiseBuffer.getChannelData(0);
+    pinkNoiseBuffer(bufferSize, output);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] *= 1.5;
+    }
+    noiseBufferCache.set("trafficPinkNoise", noiseBuffer);
   }
 
   // Apply a low-pass filter to simulate low-frequency rumble
@@ -309,10 +322,15 @@ function createBeepingNoise() {
 
 async function loadAudioBuffers(audioFileUrls, expectedNoiseType) {
   const promises = audioFileUrls.map(async (url) => {
+    if (audioBufferCache.has(url)) {
+      return audioBufferCache.get(url);
+    }
     try {
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
-      return await audioContext.decodeAudioData(arrayBuffer);
+      const decodedData = await audioContext.decodeAudioData(arrayBuffer);
+      audioBufferCache.set(url, decodedData);
+      return decodedData;
     } catch (error) {
       console.error("Error loading audio file:", error);
       return null;
