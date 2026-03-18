@@ -19,6 +19,11 @@ button {
   font-style: normal;
 }
 
+*:focus-visible {
+  outline: 3px solid rgb(220, 84, 47);
+  outline-offset: 2px;
+}
+
 main {
   color: #403c3c;
   background: linear-gradient(
