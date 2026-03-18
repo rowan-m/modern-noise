@@ -7,6 +7,9 @@ let trafficFilter = null;
 let gainNode = null;
 let gainLevel = 1;
 
+// Cache for audio buffers to prevent recalculating and fetching
+const audioBufferCache = new Map();
+
 const screamingUrls = [
   "/audio/screams/132106__sironboy__woman-scream.aac",
   "/audio/screams/13797__sweetneo85__wilhelm.aac",
@@ -174,15 +177,21 @@ function buildNoiseType() {
 }
 
 function createColouredNoise(createBufferFunction) {
-  const bufferSize = audioContext.sampleRate * 10;
-  const noiseBuffer = audioContext.createBuffer(
-    1,
-    bufferSize,
-    audioContext.sampleRate,
-  );
-  const output = noiseBuffer.getChannelData(0);
+  const cacheKey = createBufferFunction;
+  let noiseBuffer = audioBufferCache.get(cacheKey);
 
-  createBufferFunction(bufferSize, output);
+  if (!noiseBuffer) {
+    const bufferSize = audioContext.sampleRate * 10;
+    noiseBuffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate,
+    );
+    const output = noiseBuffer.getChannelData(0);
+
+    createBufferFunction(bufferSize, output);
+    audioBufferCache.set(cacheKey, noiseBuffer);
+  }
 
   noiseNode = audioContext.createBufferSource();
   noiseNode.buffer = noiseBuffer;
@@ -233,16 +242,22 @@ async function createScreamingNoise() {
 }
 
 async function createTrafficNoise() {
-  const bufferSize = audioContext.sampleRate * 10;
-  const noiseBuffer = audioContext.createBuffer(
-    1,
-    bufferSize,
-    audioContext.sampleRate,
-  );
-  const output = noiseBuffer.getChannelData(0);
-  pinkNoiseBuffer(bufferSize, output);
-  for (let i = 0; i < bufferSize; i++) {
-    output[i] *= 1.5;
+  const cacheKey = "trafficPinkNoise";
+  let noiseBuffer = audioBufferCache.get(cacheKey);
+
+  if (!noiseBuffer) {
+    const bufferSize = audioContext.sampleRate * 10;
+    noiseBuffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate,
+    );
+    const output = noiseBuffer.getChannelData(0);
+    pinkNoiseBuffer(bufferSize, output);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] *= 1.5;
+    }
+    audioBufferCache.set(cacheKey, noiseBuffer);
   }
 
   // Apply a low-pass filter to simulate low-frequency rumble
@@ -308,6 +323,16 @@ function createBeepingNoise() {
 }
 
 async function loadAudioBuffers(audioFileUrls, expectedNoiseType) {
+  const cacheKey = expectedNoiseType + "Urls";
+  let cachedBuffers = audioBufferCache.get(cacheKey);
+
+  if (cachedBuffers) {
+    if (noiseType === expectedNoiseType) {
+      audioBuffers = cachedBuffers;
+    }
+    return;
+  }
+
   const promises = audioFileUrls.map(async (url) => {
     try {
       const response = await fetch(url);
@@ -320,8 +345,10 @@ async function loadAudioBuffers(audioFileUrls, expectedNoiseType) {
   });
 
   const buffers = await Promise.all(promises);
+  const validBuffers = buffers.filter((buffer) => buffer !== null);
+  audioBufferCache.set(cacheKey, validBuffers);
   if (noiseType === expectedNoiseType) {
-    audioBuffers = buffers.filter((buffer) => buffer !== null);
+    audioBuffers = validBuffers;
   }
 }
 
