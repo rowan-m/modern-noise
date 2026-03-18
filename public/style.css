@@ -163,6 +163,11 @@ h1 > span {
   writing-mode: vertical-rl;
   appearance: none;
   background: transparent;
+
+  &:focus-visible {
+    outline: calc(var(--unit) * 0.08) solid rgb(220, 84, 47);
+    outline-offset: calc(var(--unit) * 0.08);
+  }
 }
 
 #volume-slider::-webkit-slider-runnable-track {
@@ -198,6 +203,11 @@ h1 > span {
   touch-action: manipulation;
   user-select: none;
   cursor: pointer;
+
+  &:focus-visible {
+    outline: calc(var(--unit) * 0.08) solid rgb(220, 84, 47);
+    outline-offset: calc(var(--unit) * 0.08);
+  }
 }
 
 .noise-button > span {
@@ -221,6 +231,10 @@ h1 > span {
   transition-property: box-shadow, opacity, transform;
   transition-duration: 0.4s;
   transition-timing-function: ease-out;
+
+  &:hover {
+    filter: brightness(1.1);
+  }
 
   &:active {
     box-shadow:
