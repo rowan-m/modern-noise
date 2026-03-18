@@ -405,14 +405,6 @@ function setNoiseType(newNoiseType) {
     .querySelectorAll(`#${noiseType}-icon`)
     .forEach((icon) => icon.classList.add("lcd-icon-on"));
 
-  document
-    .querySelectorAll(".noise-button")
-    .forEach((btn) => btn.setAttribute("aria-pressed", "false"));
-  const activeButton = document.querySelector(`#${noiseType}`);
-  if (activeButton) {
-    activeButton.setAttribute("aria-pressed", "true");
-  }
-
   if ("mediaSession" in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: `${title} noise`,

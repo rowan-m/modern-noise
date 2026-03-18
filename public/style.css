@@ -227,8 +227,7 @@ h1 > span {
   transition-duration: 0.4s;
   transition-timing-function: ease-out;
 
-  &:active,
-  &[aria-pressed="true"] {
+  &:active {
     box-shadow:
       0.1rem 0.1rem 0.4rem 0 rgba(0, 0, 0, 0.2),
       0.2rem 0.2rem 0.2rem 0 rgba(240, 240, 240, 0.15) inset,
