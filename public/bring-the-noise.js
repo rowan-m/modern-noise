@@ -6,6 +6,7 @@ let noiseNode = null;
 let trafficFilter = null;
 let gainNode = null;
 let gainLevel = 1;
+const bufferCache = new Map();
 
 const screamingUrls = [
   "/audio/screams/132106__sironboy__woman-scream.aac",
@@ -174,15 +175,21 @@ function buildNoiseType() {
 }
 
 function createColouredNoise(createBufferFunction) {
-  const bufferSize = audioContext.sampleRate * 10;
-  const noiseBuffer = audioContext.createBuffer(
-    1,
-    bufferSize,
-    audioContext.sampleRate,
-  );
-  const output = noiseBuffer.getChannelData(0);
+  const cacheKey = createBufferFunction.name;
+  let noiseBuffer = bufferCache.get(cacheKey);
 
-  createBufferFunction(bufferSize, output);
+  if (!noiseBuffer) {
+    const bufferSize = audioContext.sampleRate * 10;
+    noiseBuffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate,
+    );
+    const output = noiseBuffer.getChannelData(0);
+
+    createBufferFunction(bufferSize, output);
+    bufferCache.set(cacheKey, noiseBuffer);
+  }
 
   noiseNode = audioContext.createBufferSource();
   noiseNode.buffer = noiseBuffer;
@@ -233,16 +240,22 @@ async function createScreamingNoise() {
 }
 
 async function createTrafficNoise() {
-  const bufferSize = audioContext.sampleRate * 10;
-  const noiseBuffer = audioContext.createBuffer(
-    1,
-    bufferSize,
-    audioContext.sampleRate,
-  );
-  const output = noiseBuffer.getChannelData(0);
-  pinkNoiseBuffer(bufferSize, output);
-  for (let i = 0; i < bufferSize; i++) {
-    output[i] *= 1.5;
+  const cacheKey = "trafficNoise";
+  let noiseBuffer = bufferCache.get(cacheKey);
+
+  if (!noiseBuffer) {
+    const bufferSize = audioContext.sampleRate * 10;
+    noiseBuffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate,
+    );
+    const output = noiseBuffer.getChannelData(0);
+    pinkNoiseBuffer(bufferSize, output);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] *= 1.5;
+    }
+    bufferCache.set(cacheKey, noiseBuffer);
   }
 
   // Apply a low-pass filter to simulate low-frequency rumble
@@ -310,9 +323,14 @@ function createBeepingNoise() {
 async function loadAudioBuffers(audioFileUrls, expectedNoiseType) {
   const promises = audioFileUrls.map(async (url) => {
     try {
+      if (bufferCache.has(url)) {
+        return bufferCache.get(url);
+      }
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
-      return await audioContext.decodeAudioData(arrayBuffer);
+      const decodedData = await audioContext.decodeAudioData(arrayBuffer);
+      bufferCache.set(url, decodedData);
+      return decodedData;
     } catch (error) {
       console.error("Error loading audio file:", error);
       return null;
