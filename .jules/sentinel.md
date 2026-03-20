@@ -1,0 +1,4 @@
+## 2024-05-24 - Added Security Headers to Firebase Hosting
+**Vulnerability:** Missing HTTP security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy).
+**Learning:** Firebase Hosting does not apply strict security headers by default. They must be explicitly defined in `firebase.json` under `hosting.headers`. Also, when writing a Content Security Policy, inline scripts (like the HTTPS redirect script in `index.html`) can be securely allowlisted using their SHA-256 hash instead of resorting to `'unsafe-inline'`. Furthermore, testing tools like Playwright should not be left in `package.json` for production.
+**Prevention:** Always configure `hosting.headers` in `firebase.json` for new Firebase projects. Avoid `'unsafe-inline'` by computing hashes for inline scripts. Ensure temporary testing dependencies are completely removed before committing.
