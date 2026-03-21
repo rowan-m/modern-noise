@@ -390,6 +390,18 @@ function destructNoiseType() {
 }
 
 function setNoiseType(newNoiseType) {
+  const allowedTypes = [
+    "white",
+    "pink",
+    "brown",
+    "screaming",
+    "traffic",
+    "building",
+    "beeping",
+  ];
+  if (!allowedTypes.includes(newNoiseType)) {
+    return;
+  }
   if (newNoiseType === noiseType) {
     return;
   }

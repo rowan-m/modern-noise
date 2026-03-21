@@ -1,0 +1,4 @@
+## 2026-03-21 - Generic Object Injection Sink in DOM Queries
+**Vulnerability:** Eslint `security/detect-object-injection` rule reported several Generic Object Injection Sinks because dynamic string variables (like `noiseType`) were used directly in DOM selectors or array index accesses (e.g. `document.querySelector(\`#${noiseType}-icon\`)`) without validation.
+**Learning:** Even in frontend code, directly constructing DOM queries or object keys from unchecked inputs can lead to application logic issues, broken selectors, or potential XSS/injection if the input originates from a user-controllable source.
+**Prevention:** Implement explicit input validation by checking the dynamic variable against a predefined, safe array of allowed strings (e.g., `const allowedTypes = ['white', 'pink']; if (!allowedTypes.includes(val)) return;`).
