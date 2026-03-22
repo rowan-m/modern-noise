@@ -7,6 +7,9 @@ let trafficFilter = null;
 let gainNode = null;
 let gainLevel = 1;
 
+// Global cache for noise buffers to prevent recalculations on every play
+const noiseBufferCache = new Map();
+
 const screamingUrls = [
   "/audio/screams/132106__sironboy__woman-scream.aac",
   "/audio/screams/13797__sweetneo85__wilhelm.aac",
@@ -174,15 +177,22 @@ function buildNoiseType() {
 }
 
 function createColouredNoise(createBufferFunction) {
-  const bufferSize = audioContext.sampleRate * 10;
-  const noiseBuffer = audioContext.createBuffer(
-    1,
-    bufferSize,
-    audioContext.sampleRate,
-  );
-  const output = noiseBuffer.getChannelData(0);
+  const cacheKey = createBufferFunction.name;
+  let noiseBuffer = noiseBufferCache.get(cacheKey);
 
-  createBufferFunction(bufferSize, output);
+  if (!noiseBuffer) {
+    // Performance optimization: Generate the buffer only once and cache it.
+    // This reduces main thread CPU/memory usage from recalculating on every play.
+    const bufferSize = audioContext.sampleRate * 10;
+    noiseBuffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate,
+    );
+    const output = noiseBuffer.getChannelData(0);
+    createBufferFunction(bufferSize, output);
+    noiseBufferCache.set(cacheKey, noiseBuffer);
+  }
 
   noiseNode = audioContext.createBufferSource();
   noiseNode.buffer = noiseBuffer;
@@ -233,16 +243,22 @@ async function createScreamingNoise() {
 }
 
 async function createTrafficNoise() {
-  const bufferSize = audioContext.sampleRate * 10;
-  const noiseBuffer = audioContext.createBuffer(
-    1,
-    bufferSize,
-    audioContext.sampleRate,
-  );
-  const output = noiseBuffer.getChannelData(0);
-  pinkNoiseBuffer(bufferSize, output);
-  for (let i = 0; i < bufferSize; i++) {
-    output[i] *= 1.5;
+  let noiseBuffer = noiseBufferCache.get("traffic");
+
+  if (!noiseBuffer) {
+    // Performance optimization: Generate the traffic buffer only once and cache it.
+    const bufferSize = audioContext.sampleRate * 10;
+    noiseBuffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate,
+    );
+    const output = noiseBuffer.getChannelData(0);
+    pinkNoiseBuffer(bufferSize, output);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] *= 1.5;
+    }
+    noiseBufferCache.set("traffic", noiseBuffer);
   }
 
   // Apply a low-pass filter to simulate low-frequency rumble
