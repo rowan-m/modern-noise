@@ -171,6 +171,11 @@ h1 > span {
   border-radius: calc(var(--unit) * 0.2);
 }
 
+#volume-slider:focus-visible {
+  outline: 3px solid rgb(220, 84, 47);
+  outline-offset: 4px;
+}
+
 #volume-slider::-webkit-slider-thumb {
   /* margin = (track width/2) - (thumb width/2) */
   margin-right: calc(var(--unit) * -0.4);
@@ -198,6 +203,11 @@ h1 > span {
   touch-action: manipulation;
   user-select: none;
   cursor: pointer;
+}
+
+.noise-button:focus-visible {
+  outline: 3px solid rgb(220, 84, 47);
+  outline-offset: 4px;
 }
 
 .noise-button > span {
