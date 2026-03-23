@@ -74,6 +74,10 @@ const buildingUrls = [
 
 let audioBuffers = [];
 
+// ⚡ Cache AudioBuffers to prevent repeatedly recalculating expensive noise generation
+// This saves ~10-12ms on the main thread every time a noise type is switched or restarted.
+const noiseBufferCache = new Map();
+
 let isPlaying = false;
 let noiseType = "white";
 
@@ -174,15 +178,21 @@ function buildNoiseType() {
 }
 
 function createColouredNoise(createBufferFunction) {
-  const bufferSize = audioContext.sampleRate * 10;
-  const noiseBuffer = audioContext.createBuffer(
-    1,
-    bufferSize,
-    audioContext.sampleRate,
-  );
-  const output = noiseBuffer.getChannelData(0);
+  const cacheKey = createBufferFunction.name;
+  let noiseBuffer = noiseBufferCache.get(cacheKey);
 
-  createBufferFunction(bufferSize, output);
+  if (!noiseBuffer) {
+    const bufferSize = audioContext.sampleRate * 10;
+    noiseBuffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate,
+    );
+    const output = noiseBuffer.getChannelData(0);
+
+    createBufferFunction(bufferSize, output);
+    noiseBufferCache.set(cacheKey, noiseBuffer);
+  }
 
   noiseNode = audioContext.createBufferSource();
   noiseNode.buffer = noiseBuffer;
@@ -233,16 +243,22 @@ async function createScreamingNoise() {
 }
 
 async function createTrafficNoise() {
-  const bufferSize = audioContext.sampleRate * 10;
-  const noiseBuffer = audioContext.createBuffer(
-    1,
-    bufferSize,
-    audioContext.sampleRate,
-  );
-  const output = noiseBuffer.getChannelData(0);
-  pinkNoiseBuffer(bufferSize, output);
-  for (let i = 0; i < bufferSize; i++) {
-    output[i] *= 1.5;
+  const cacheKey = "trafficNoiseBase";
+  let noiseBuffer = noiseBufferCache.get(cacheKey);
+
+  if (!noiseBuffer) {
+    const bufferSize = audioContext.sampleRate * 10;
+    noiseBuffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate,
+    );
+    const output = noiseBuffer.getChannelData(0);
+    pinkNoiseBuffer(bufferSize, output);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] *= 1.5;
+    }
+    noiseBufferCache.set(cacheKey, noiseBuffer);
   }
 
   // Apply a low-pass filter to simulate low-frequency rumble
