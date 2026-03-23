@@ -246,3 +246,14 @@ h1 > span {
     color: rgb(245, 245, 240);
   }
 }
+
+a:focus-visible,
+.noise-button:focus-visible,
+#volume-slider:focus-visible {
+  outline: 3px solid rgb(220, 84, 47);
+  outline-offset: 4px;
+}
+
+a:focus-visible {
+  border-radius: 2px;
+}
