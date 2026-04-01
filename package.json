@@ -12,18 +12,22 @@
     "lint:security": "eslint public -c eslint.security.config.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run format:check && npm run lint && npm run lint:sonar && npm run lint:security"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run format:check && npm run lint && npm run lint:sonar && npm run lint:security && npm run test"
   },
   "devDependencies": {
-    "@eslint/css": "^1.0.0",
+    "@eslint/css": "^1.1.0",
     "@eslint/js": "^10.0.1",
-    "@eslint/json": "^1.1.0",
-    "eslint": "^10.0.3",
+    "@eslint/json": "^1.2.0",
+    "eslint": "^10.1.0",
     "eslint-plugin-no-unsanitized": "^4.1.5",
     "eslint-plugin-security": "^4.0.0",
     "eslint-plugin-sonarjs": "^4.0.2",
     "globals": "^17.4.0",
+    "jsdom": "^29.0.1",
     "prettier": "^3.8.1",
-    "serve": "^14.2.6"
+    "serve": "^14.2.6",
+    "vitest": "^4.1.2"
   }
 }

@@ -1,13 +1,12 @@
-"use strict";
-
 // Initialise shared variables
 let audioContext = null;
 let noiseNode = null;
 let trafficFilter = null;
 let gainNode = null;
 let gainLevel = 1;
+let backgroundAudio = null;
 
-const screamingUrls = [
+export const screamingUrls = [
   "/audio/screams/132106__sironboy__woman-scream.aac",
   "/audio/screams/13797__sweetneo85__wilhelm.aac",
   "/audio/screams/173088__vitouliss__screaming-into-the-microphone.aac",
@@ -32,7 +31,7 @@ const screamingUrls = [
   "/audio/screams/9703__lithe-fider__fl_scream-1.aac",
 ];
 
-const trafficUrls = [
+export const trafficUrls = [
   "/audio/traffic/106785__robinhood76__02229-car-claxons.aac",
   "/audio/traffic/164625__deleted_user_2104797__car_horn_short.aac",
   "/audio/traffic/164627__deleted_user_2104797__car_horn_long.aac",
@@ -41,7 +40,7 @@ const trafficUrls = [
   "/audio/traffic/268809__hyderpotter__police-car-siren-in-traffic.aac",
   "/audio/traffic/349922__devern__car-horn-honk.aac",
   "/audio/traffic/435497__etcd_09__car-horn-honk.aac",
-  "/audio/traffic/513527__g_m_d_three__truck_backing_up_04_14_2020_010.aac",
+  "/audio/traffic/513527__g_m_d_three__truck_backing_up_04_14_20_010.aac",
   "/audio/traffic/569613__wanaki__car-horn_irritated-driver-stuck-in-traffic.aac",
   "/audio/traffic/571348__99021905683__car-horn-honking.aac",
   "/audio/traffic/635681__laurenponder__bushorn_laurenpond.aac",
@@ -52,7 +51,7 @@ const trafficUrls = [
   "/audio/traffic/770985__jorgens__car_10.aac",
 ];
 
-const buildingUrls = [
+export const buildingUrls = [
   "/audio/construction/118042__glamont__construction-site.aac",
   "/audio/construction/118972__esperri__chainsaw.aac",
   "/audio/construction/121531__cognito-perceptu__tracked-vehicle.aac",
@@ -73,21 +72,14 @@ const buildingUrls = [
 ];
 
 let audioBuffers = [];
-
 let isPlaying = false;
 let noiseType = "white";
 
-// Grab elements and set up listeners
-const backgroundAudio = document.querySelector("audio");
-backgroundAudio.loop = true;
-
-function startNoise() {
-  if (isPlaying) {
-    return;
-  }
+export function startNoise() {
+  if (isPlaying) return;
 
   if (!audioContext) {
-    audioContext = new window.AudioContext();
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
 
   if (!gainNode) {
@@ -108,22 +100,25 @@ function startNoise() {
     .classList.add("lcd-icon-pulsing");
   document.querySelector(`#play-icon`).classList.add("lcd-icon-on");
 
-  navigator.mediaSession.playbackState = "playing";
-  navigator.mediaSession.setPositionState({
-    duration: 1,
-    playbackRate: 1,
-    position: 1,
-  });
-  backgroundAudio.play();
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.playbackState = "playing";
+    navigator.mediaSession.setPositionState({
+      duration: 1,
+      playbackRate: 1,
+      position: 1,
+    });
+  }
+
+  backgroundAudio
+    .play()
+    .catch((error) => console.error("Error playing background audio:", error));
   isPlaying = true;
 }
 
-function stopNoise() {
-  if (!isPlaying) {
-    return;
-  }
+export function stopNoise() {
+  if (!isPlaying) return;
 
-  gainNode.gain.value = 0;
+  if (gainNode) gainNode.gain.value = 0;
   destructNoiseType();
 
   document
@@ -132,18 +127,20 @@ function stopNoise() {
   document.querySelector(`#play-icon`).classList.remove("lcd-icon-on");
 
   backgroundAudio.pause();
-  navigator.mediaSession.playbackState = "paused";
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.playbackState = "paused";
+  }
   isPlaying = false;
 }
 
-function restartNoise() {
+export function restartNoise() {
   if (isPlaying) {
     stopNoise();
     startNoise();
   }
 }
 
-function buildNoiseType() {
+export function buildNoiseType() {
   destructNoiseType();
 
   switch (noiseType) {
@@ -168,12 +165,10 @@ function buildNoiseType() {
     case "beeping":
       createBeepingNoise();
       break;
-    default:
-      break;
   }
 }
 
-function createColouredNoise(createBufferFunction) {
+export function createColouredNoise(createBufferFunction) {
   const bufferSize = audioContext.sampleRate * 10;
   const noiseBuffer = audioContext.createBuffer(
     1,
@@ -191,13 +186,13 @@ function createColouredNoise(createBufferFunction) {
   noiseNode.start();
 }
 
-function whiteNoiseBuffer(bufferSize, output) {
+export function whiteNoiseBuffer(bufferSize, output) {
   for (let i = 0; i < bufferSize; i++) {
     output[i] = Math.random() * 2 - 1;
   }
 }
 
-function pinkNoiseBuffer(bufferSize, output) {
+export function pinkNoiseBuffer(bufferSize, output) {
   let b0, b1, b2, b3, b4, b5, b6;
   b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
 
@@ -210,29 +205,29 @@ function pinkNoiseBuffer(bufferSize, output) {
     b4 = 0.55 * b4 + white * 0.5329522;
     b5 = -0.7616 * b5 - white * 0.016898;
     output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-    output[i] *= 0.11; // (roughly) compensate for gain
+    output[i] *= 0.11;
     b6 = white * 0.115926;
   }
 }
 
-function brownNoiseBuffer(bufferSize, output) {
+export function brownNoiseBuffer(bufferSize, output) {
   let lastOut = 0.0;
 
   for (let i = 0; i < bufferSize; i++) {
     const white = Math.random() * 2 - 1;
     output[i] = (lastOut + 0.02 * white) / 1.02;
     lastOut = output[i];
-    output[i] *= 3.5; // (roughly) compensate for gain
+    output[i] *= 3.5;
   }
 }
 
-async function createScreamingNoise() {
+export async function createScreamingNoise() {
   audioBuffers = [];
   await loadAudioBuffers(screamingUrls, "screaming");
   if (noiseType === "screaming") scheduleNextAudioClip();
 }
 
-async function createTrafficNoise() {
+export async function createTrafficNoise() {
   const bufferSize = audioContext.sampleRate * 10;
   const noiseBuffer = audioContext.createBuffer(
     1,
@@ -245,18 +240,15 @@ async function createTrafficNoise() {
     output[i] *= 1.5;
   }
 
-  // Apply a low-pass filter to simulate low-frequency rumble
   trafficFilter = audioContext.createBiquadFilter();
   trafficFilter.type = "lowpass";
-  trafficFilter.frequency.value = 200; // Cutoff frequency for the low-pass filter
+  trafficFilter.frequency.value = 200;
 
   noiseNode = audioContext.createBufferSource();
   noiseNode.buffer = noiseBuffer;
   noiseNode.loop = true;
-
   noiseNode.connect(trafficFilter);
   trafficFilter.connect(gainNode);
-
   noiseNode.start();
 
   audioBuffers = [];
@@ -264,7 +256,7 @@ async function createTrafficNoise() {
   if (noiseType === "traffic") scheduleNextAudioClip();
 }
 
-async function createBuildingNoise() {
+export async function createBuildingNoise() {
   audioBuffers = [];
   await loadAudioBuffers(buildingUrls, "building");
   if (noiseType === "building") scheduleNextAudioClip();
@@ -273,13 +265,13 @@ async function createBuildingNoise() {
 let beepingTimeout = null;
 let clipTimeout = null;
 
-function createBeepingNoise() {
+export function createBeepingNoise() {
   const beepingOscillator = audioContext.createOscillator();
   beepingOscillator.type = "sine";
-  beepingOscillator.frequency.value = 2400; // Base frequency
+  beepingOscillator.frequency.value = 2400;
 
   const beepGainNode = audioContext.createGain();
-  beepGainNode.gain.value = 0; // Start silent
+  beepGainNode.gain.value = 0;
   beepingOscillator.connect(beepGainNode);
   beepGainNode.connect(gainNode);
 
@@ -290,11 +282,11 @@ function createBeepingNoise() {
   beepGainNode.gain.linearRampToValueAtTime(
     1,
     audioContext.currentTime + rampTime,
-  ); // Ramp up quickly
+  );
   beepGainNode.gain.linearRampToValueAtTime(
     0,
     audioContext.currentTime + beepInterval,
-  ); // Ramp down quickly
+  );
 
   beepingOscillator.stop(audioContext.currentTime + beepInterval + 0.1);
   beepingOscillator.onended = () => {
@@ -307,14 +299,14 @@ function createBeepingNoise() {
   }, beepInterval * 3000);
 }
 
-async function loadAudioBuffers(audioFileUrls, expectedNoiseType) {
+export async function loadAudioBuffers(audioFileUrls, expectedNoiseType) {
   const promises = audioFileUrls.map(async (url) => {
     try {
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
       return await audioContext.decodeAudioData(arrayBuffer);
     } catch (error) {
-      console.error("Error loading audio file:", error);
+      console.error(`Error loading audio clip from ${url}:`, error);
       return null;
     }
   });
@@ -325,10 +317,8 @@ async function loadAudioBuffers(audioFileUrls, expectedNoiseType) {
   }
 }
 
-function scheduleNextAudioClip() {
-  if (!isPlaying) {
-    return;
-  }
+export function scheduleNextAudioClip() {
+  if (!isPlaying) return;
   playRandomAudioClip();
   const nextInterval = Math.random() * 0.5 + 1;
   clipTimeout = setTimeout(scheduleNextAudioClip, nextInterval * 1000);
@@ -336,10 +326,8 @@ function scheduleNextAudioClip() {
 
 let audioSources = [];
 
-function playRandomAudioClip() {
-  if (!audioContext || audioBuffers.length === 0) {
-    return;
-  }
+export function playRandomAudioClip() {
+  if (!audioContext || audioBuffers.length === 0) return;
 
   const randomIndex = Math.floor(Math.random() * audioBuffers.length);
   const audioBuffer = audioBuffers[randomIndex];
@@ -359,9 +347,13 @@ function playRandomAudioClip() {
   audioSource.start();
 }
 
-function destructNoiseType() {
+export function destructNoiseType() {
   if (noiseNode) {
-    noiseNode.stop();
+    try {
+      noiseNode.stop();
+    } catch (error) {
+      console.error("Error stopping noise node:", error);
+    }
     noiseNode.disconnect();
     noiseNode = null;
   }
@@ -382,17 +374,19 @@ function destructNoiseType() {
   }
 
   audioSources.forEach((source) => {
-    source.stop();
+    try {
+      source.stop();
+    } catch (error) {
+      console.error("Error stopping audio source:", error);
+    }
     source.disconnect();
   });
   audioSources = [];
   audioBuffers = [];
 }
 
-function setNoiseType(newNoiseType) {
-  if (newNoiseType === noiseType) {
-    return;
-  }
+export function setNoiseType(newNoiseType) {
+  if (newNoiseType === noiseType) return;
 
   noiseType = newNoiseType;
   const title = newNoiseType.charAt(0).toUpperCase() + newNoiseType.slice(1);
@@ -401,9 +395,7 @@ function setNoiseType(newNoiseType) {
   document
     .querySelectorAll(".lcd-icon-on")
     .forEach((icon) => icon.classList.remove("lcd-icon-on"));
-  document
-    .querySelectorAll(`#${noiseType}-icon`)
-    .forEach((icon) => icon.classList.add("lcd-icon-on"));
+  document.querySelector(`#${noiseType}-icon`).classList.add("lcd-icon-on");
 
   if ("mediaSession" in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -417,9 +409,11 @@ function setNoiseType(newNoiseType) {
   restartNoise();
 }
 
-function updateLcd(newText) {
+export function updateLcd(newText) {
   const lcdOn = document.querySelector(".lcd-on");
   const lcdOff = document.querySelector(".lcd-off");
+  if (!lcdOn || !lcdOff) return;
+
   lcdOff.textContent = newText;
   lcdOff.classList.add("lcd-on");
   lcdOff.classList.remove("lcd-off");
@@ -427,38 +421,46 @@ function updateLcd(newText) {
   lcdOn.classList.remove("lcd-on");
 }
 
-document.querySelector("#play").addEventListener("click", () => startNoise());
-document.querySelector("#pause").addEventListener("click", () => stopNoise());
-document
-  .querySelector("#white")
-  .addEventListener("click", () => setNoiseType("white"));
-document
-  .querySelector("#pink")
-  .addEventListener("click", () => setNoiseType("pink"));
-document
-  .querySelector("#brown")
-  .addEventListener("click", () => setNoiseType("brown"));
-document
-  .querySelector("#screaming")
-  .addEventListener("click", () => setNoiseType("screaming"));
-document
-  .querySelector("#building")
-  .addEventListener("click", () => setNoiseType("building"));
-document
-  .querySelector("#traffic")
-  .addEventListener("click", () => setNoiseType("traffic"));
-document
-  .querySelector("#beeping")
-  .addEventListener("click", () => setNoiseType("beeping"));
-document.querySelector("#volume-slider").addEventListener("input", (ev) => {
-  gainLevel = 2 - ev.target.value;
-  if (isPlaying && gainNode) {
-    gainNode.gain.setTargetAtTime(gainLevel, audioContext.currentTime, 0.05);
+export function init() {
+  backgroundAudio = document.querySelector("audio");
+  if (backgroundAudio) {
+    backgroundAudio.loop = true;
   }
-});
 
-navigator.mediaSession.setActionHandler("play", () => startNoise());
-navigator.mediaSession.setActionHandler("pause", () => stopNoise());
-navigator.mediaSession.setActionHandler("stop", () => stopNoise());
+  document.querySelector("#play").addEventListener("click", () => startNoise());
+  document.querySelector("#pause").addEventListener("click", () => stopNoise());
 
-setNoiseType(noiseType);
+  const types = [
+    "white",
+    "pink",
+    "brown",
+    "screaming",
+    "building",
+    "traffic",
+    "beeping",
+  ];
+  types.forEach((type) => {
+    document
+      .querySelector(`#${type}`)
+      .addEventListener("click", () => setNoiseType(type));
+  });
+
+  document.querySelector("#volume-slider").addEventListener("input", (ev) => {
+    gainLevel = 2 - ev.target.value;
+    if (isPlaying && gainNode) {
+      gainNode.gain.setTargetAtTime(gainLevel, audioContext.currentTime, 0.05);
+    }
+  });
+
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.setActionHandler("play", () => startNoise());
+    navigator.mediaSession.setActionHandler("pause", () => stopNoise());
+    navigator.mediaSession.setActionHandler("stop", () => stopNoise());
+  }
+
+  setNoiseType(noiseType);
+}
+
+if (typeof __TEST_ENVIRONMENT__ === "undefined") {
+  init();
+}
