@@ -12,7 +12,8 @@
     "lint:security": "eslint public -c eslint.security.config.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run format:check && npm run lint && npm run lint:sonar && npm run lint:security"
+    "test": "node --test public/*.test.js",
+    "check": "npm run format:check && npm run test && npm run lint && npm run lint:sonar && npm run lint:security"
   },
   "devDependencies": {
     "@eslint/css": "^1.0.0",
