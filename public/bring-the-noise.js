@@ -221,10 +221,14 @@ export function brownNoiseBuffer(bufferSize, output) {
   }
 }
 
-export async function createScreamingNoise() {
+export async function createSampledNoise(urls, type) {
   audioBuffers = [];
-  await loadAudioBuffers(screamingUrls, "screaming");
-  if (noiseType === "screaming") scheduleNextAudioClip();
+  await loadAudioBuffers(urls, type);
+  if (noiseType === type) scheduleNextAudioClip();
+}
+
+export async function createScreamingNoise() {
+  await createSampledNoise(screamingUrls, "screaming");
 }
 
 export async function createTrafficNoise() {
@@ -251,15 +255,11 @@ export async function createTrafficNoise() {
   trafficFilter.connect(gainNode);
   noiseNode.start();
 
-  audioBuffers = [];
-  await loadAudioBuffers(trafficUrls, "traffic");
-  if (noiseType === "traffic") scheduleNextAudioClip();
+  await createSampledNoise(trafficUrls, "traffic");
 }
 
 export async function createBuildingNoise() {
-  audioBuffers = [];
-  await loadAudioBuffers(buildingUrls, "building");
-  if (noiseType === "building") scheduleNextAudioClip();
+  await createSampledNoise(buildingUrls, "building");
 }
 
 let beepingTimeout = null;
