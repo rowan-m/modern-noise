@@ -5,29 +5,35 @@
   "description": "A modern noise machine for a modern world.",
   "private": true,
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "serve public",
-    "lint": "eslint public",
-    "lint:sonar": "eslint public -c eslint.sonar.config.js",
-    "lint:security": "eslint public -c eslint.security.config.js",
+    "lint": "eslint . --max-warnings=0",
+    "lint:sonar": "eslint . -c eslint.sonar.config.js --max-warnings=0",
+    "lint:security": "eslint . -c eslint.security.config.js --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "npm run format:check && npm run lint && npm run lint:sonar && npm run lint:security && npm run test"
   },
+  "overrides": {
+    "compression": "^1.8.2"
+  },
   "devDependencies": {
-    "@eslint/css": "^2.0.0",
+    "@eslint/css": "^2.0.1",
     "@eslint/js": "^10.0.1",
-    "@eslint/json": "^2.1.0",
-    "eslint": "^10.12.0",
+    "@eslint/json": "^2.1.1",
+    "eslint": "^10.13.0",
     "eslint-plugin-no-unsanitized": "^4.1.5",
     "eslint-plugin-security": "^4.2.0",
     "eslint-plugin-sonarjs": "^4.2.2",
     "globals": "^17.13.0",
-    "jsdom": "^30.1.1",
-    "prettier": "^3.9.9",
+    "jsdom": "^30.1.3",
+    "prettier": "^3.9.10",
     "serve": "^14.2.6",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.5"
   }
 }

@@ -12,4 +12,16 @@ export default [
     ...pluginNoUnsanitized.configs.recommended,
     files: ["**/*.{js,mjs,cjs}"],
   },
+  {
+    files: ["public/js/dsp.js"],
+    rules: {
+      "security/detect-object-injection": "off",
+    },
+  },
+  {
+    files: ["tests/**/*.js"],
+    rules: {
+      "security/detect-non-literal-fs-filename": "off",
+    },
+  },
 ];

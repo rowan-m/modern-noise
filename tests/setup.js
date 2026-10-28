@@ -1,19 +1,29 @@
 import { vi } from "vitest";
 
-global.__TEST_ENVIRONMENT__ = true;
-
-// Mock AudioContext
-
-class MockAudioContext {
+export class MockAudioContext {
   constructor() {
+    this.state = "running";
     this.currentTime = 0;
     this.sampleRate = 44100;
-    this.destination = {};
+    this.destination = { kind: "destination" };
+    this.resume = vi.fn().mockImplementation(() => {
+      this.state = "running";
+      return Promise.resolve();
+    });
+    this.decodeAudioData = vi.fn().mockImplementation(() =>
+      Promise.resolve({
+        duration: 1,
+        sampleRate: this.sampleRate,
+      }),
+    );
   }
+
   createGain() {
     return {
       gain: {
         value: 1,
+        cancelScheduledValues: vi.fn(),
+        setValueAtTime: vi.fn(),
         linearRampToValueAtTime: vi.fn(),
         setTargetAtTime: vi.fn(),
       },
@@ -21,21 +31,39 @@ class MockAudioContext {
       disconnect: vi.fn(),
     };
   }
-  createBuffer(channels, length, sampleRate) {
+
+  createDynamicsCompressor() {
     return {
-      getChannelData: () => new Float32Array(length),
+      threshold: { value: -24 },
+      knee: { value: 30 },
+      ratio: { value: 12 },
+      attack: { value: 0.003 },
+      release: { value: 0.25 },
+      connect: vi.fn(),
+      disconnect: vi.fn(),
     };
   }
+
+  createBuffer(_channels, length) {
+    const channelData = new Float32Array(length);
+    return {
+      length,
+      getChannelData: () => channelData,
+    };
+  }
+
   createBufferSource() {
     return {
       buffer: null,
       loop: false,
+      onended: null,
       connect: vi.fn(),
       disconnect: vi.fn(),
       start: vi.fn(),
       stop: vi.fn(),
     };
   }
+
   createBiquadFilter() {
     return {
       type: "",
@@ -44,44 +72,47 @@ class MockAudioContext {
       disconnect: vi.fn(),
     };
   }
+
   createOscillator() {
     return {
       type: "",
       frequency: { value: 0 },
+      onended: null,
       connect: vi.fn(),
       disconnect: vi.fn(),
       start: vi.fn(),
       stop: vi.fn(),
     };
   }
-  decodeAudioData() {
-    return Promise.resolve({});
-  }
 }
 
-global.AudioContext = MockAudioContext;
-global.webkitAudioContext = MockAudioContext;
+globalThis.AudioContext = MockAudioContext;
+globalThis.webkitAudioContext = MockAudioContext;
 
-// Mock navigator.mediaSession
-global.navigator.mediaSession = {
-  playbackState: "none",
-  metadata: null,
-  setActionHandler: vi.fn(),
-  setPositionState: vi.fn(),
-};
+Object.defineProperty(globalThis.navigator, "mediaSession", {
+  configurable: true,
+  writable: true,
+  value: {
+    playbackState: "none",
+    metadata: null,
+    setActionHandler: vi.fn(),
+    setPositionState: vi.fn(),
+  },
+});
 
-global.MediaMetadata = class {
+globalThis.MediaMetadata = class {
   constructor(metadata) {
-    this.metadata = metadata;
+    Object.assign(this, metadata);
   }
 };
 
-// Mock HTMLMediaElement.prototype.play and pause
 HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue();
 HTMLMediaElement.prototype.pause = vi.fn();
 HTMLMediaElement.prototype.load = vi.fn();
 
-// Mock fetch
-global.fetch = vi.fn().mockResolvedValue({
+globalThis.fetch = vi.fn().mockResolvedValue({
+  ok: true,
+  status: 200,
+  statusText: "OK",
   arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
 });
