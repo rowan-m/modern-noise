@@ -1,6 +1,10 @@
 import { NOISE_MODES, NOISE_TYPES } from "./audio-assets.js";
 import { NoiseEngine } from "./noise-engine.js";
 
+export function formatVolumePercent(gainLevel) {
+  return `${Math.round(gainLevel * 100)}%`;
+}
+
 export function updateLcd(newText, root = document) {
   const lcdOn = root.querySelector(".lcd-on");
   const lcdOff = root.querySelector(".lcd-off");
@@ -46,19 +50,7 @@ export function initApp({ root = document, engineOptions = {} } = {}) {
     backgroundAudio.loop = true;
   }
 
-  let isLoadingSamples = false;
-
-  const engine = new NoiseEngine({
-    ...engineOptions,
-    onLoadingChange: (loading) => {
-      if (isLoadingSamples === loading) return;
-      isLoadingSamples = loading;
-      const mode = NOISE_MODES.get(engine.noiseType);
-      if (mode) {
-        updateLcd(loading ? "Loading" : mode.title, root);
-      }
-    },
-  });
+  const engine = new NoiseEngine(engineOptions);
 
   const syncTransportUi = () => {
     const playIcon = root.querySelector("#play-icon");
@@ -86,9 +78,7 @@ export function initApp({ root = document, engineOptions = {} } = {}) {
     const mode = NOISE_MODES.get(noiseType);
     if (!mode) return;
 
-    if (!isLoadingSamples) {
-      updateLcd(mode.title, root);
-    }
+    updateLcd(mode.title, root);
 
     for (const type of NOISE_TYPES) {
       const isSelected = type === noiseType;
@@ -135,10 +125,21 @@ export function initApp({ root = document, engineOptions = {} } = {}) {
   }
 
   const volumeSlider = root.querySelector("#volume-slider");
-  volumeSlider?.addEventListener("input", (ev) => {
-    const gainLevel = 2 - Number(ev.target.value);
+  const syncVolumeFromSlider = () => {
+    if (!volumeSlider) return;
+    const gainLevel = Number(volumeSlider.value);
+    if (Number.isNaN(gainLevel)) return;
     engine.setVolume(gainLevel);
-  });
+    volumeSlider.setAttribute(
+      "aria-valuetext",
+      formatVolumePercent(engine.gainLevel),
+    );
+  };
+
+  if (volumeSlider) {
+    syncVolumeFromSlider();
+    volumeSlider.addEventListener("input", syncVolumeFromSlider);
+  }
 
   if ("mediaSession" in navigator) {
     navigator.mediaSession.setActionHandler("play", startPlayback);

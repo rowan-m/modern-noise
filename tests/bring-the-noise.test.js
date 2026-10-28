@@ -133,3 +133,41 @@ test("initApp populates initial White noise MediaMetadata and updates UI across 
   expect(app.engine.isPlaying).toBe(false);
   expect(navigator.mediaSession.playbackState).toBe("paused");
 });
+
+test("volume slider maps 0..2 directly to 0%..200% without inversion", () => {
+  renderAppFixture();
+  const app = noise.initApp();
+  const slider = document.querySelector("#volume-slider");
+
+  expect(app.engine.gainLevel).toBe(1);
+  expect(slider.getAttribute("aria-valuetext")).toBe("100%");
+
+  slider.value = "2";
+  slider.dispatchEvent(new Event("input"));
+  expect(app.engine.gainLevel).toBe(2);
+  expect(slider.getAttribute("aria-valuetext")).toBe("200%");
+
+  slider.value = "0";
+  slider.dispatchEvent(new Event("input"));
+  expect(app.engine.gainLevel).toBe(0);
+  expect(slider.getAttribute("aria-valuetext")).toBe("0%");
+});
+
+test("manifest.json uses valid image/jpeg MIME types and distinct icons", async () => {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const manifest = JSON.parse(
+    fs.readFileSync(
+      path.resolve(import.meta.dirname, "../public/manifest.json"),
+      "utf8",
+    ),
+  );
+
+  const srcs = manifest.icons.map((i) => i.src);
+  expect(new Set(srcs).size).toBe(srcs.length);
+
+  for (const icon of manifest.icons) {
+    expect(icon.type).toBe("image/jpeg");
+    expect(icon.purpose).toBe("any");
+  }
+});
