@@ -1,0 +1,6 @@
+node_modules/
+.firebase/
+package-lock.json
+public/audio/
+public/img/*.jpg
+public/img/*.png

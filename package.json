@@ -5,16 +5,22 @@
   "description": "A modern noise machine for a modern world.",
   "private": true,
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "serve public",
-    "lint": "eslint public",
-    "lint:sonar": "eslint public -c eslint.sonar.config.js",
-    "lint:security": "eslint public -c eslint.security.config.js",
+    "lint": "eslint . --max-warnings=0",
+    "lint:sonar": "eslint . -c eslint.sonar.config.js --max-warnings=0",
+    "lint:security": "eslint . -c eslint.security.config.js --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "npm run format:check && npm run lint && npm run lint:sonar && npm run lint:security && npm run test"
+  },
+  "overrides": {
+    "compression": "^1.8.2"
   },
   "devDependencies": {
     "@eslint/css": "^2.0.1",
