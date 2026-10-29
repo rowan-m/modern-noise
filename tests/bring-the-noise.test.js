@@ -12,6 +12,7 @@ function renderAppFixture() {
       <span id="building-icon" class="lcd-icon">🚧</span>
       <span id="traffic-icon" class="lcd-icon">🚘</span>
       <span id="beeping-icon" class="lcd-icon">🚨</span>
+      <span id="spooky-icon" class="lcd-icon">🎃</span>
       <span class="lcd-text">
         <span class="lcd-on">White</span>
         <span class="lcd-off" aria-hidden="true"></span>
@@ -27,6 +28,7 @@ function renderAppFixture() {
       <button id="building" class="noise-button">🛠</button>
       <button id="traffic" class="noise-button">🚗</button>
       <button id="beeping" class="noise-button">📟</button>
+      <button id="spooky" class="noise-button">💀</button>
       <button id="pause" class="noise-button">⏸</button>
       <button id="play" class="noise-button">▶</button>
     </section>
@@ -128,6 +130,15 @@ test("initApp populates initial White noise MediaMetadata and updates UI across 
       .querySelector("#white-icon")
       .classList.contains("lcd-icon-pulsing"),
   ).toBe(false);
+
+  document.querySelector("#spooky").click();
+  expect(document.querySelector(".lcd-on").textContent).toBe("Spooky");
+  expect(navigator.mediaSession.metadata.title).toBe("Spooky noise");
+  expect(
+    document
+      .querySelector("#spooky-icon")
+      .classList.contains("lcd-icon-pulsing"),
+  ).toBe(true);
 
   document.querySelector("#pause").click();
   expect(app.engine.isPlaying).toBe(false);

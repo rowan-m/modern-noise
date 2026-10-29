@@ -63,6 +63,35 @@ export const buildingUrls = [
   "/audio/construction/69891__costamonteiro__metro_under_construction.aac",
 ];
 
+export const spookySoundscapeUrls = [
+  "/audio/spooky/147303__dwoboyle__ambiance-eerie_wind-001.aac",
+  "/audio/spooky/159509__mistersherlock__halloween-graveyard-at-night-howling-wind.aac",
+  "/audio/spooky/261399__klankbeeld__horror-ambience-80-150112_0504.aac",
+  "/audio/spooky/402095__inspectorj__dramatic-organ-a.aac",
+  "/audio/spooky/493545__original_sound__1-dark-atmosphere-evil-presence-15-sec.aac",
+  "/audio/spooky/612186__victor_natas__bad-feelings.aac",
+  "/audio/spooky/617747__szegvari__forest-birds-wind-dark-haunted-outdoor-eerie-atmo-atmosphere-cinematic.aac",
+];
+
+export const spookyUrls = [
+  "/audio/spooky/132251__maxdemianagl__moaning_vanishing_ghost.aac",
+  "/audio/spooky/160689__cosmicembers__church-bell.aac",
+  "/audio/spooky/164285__billy_storm__ghostly_moan.aac",
+  "/audio/spooky/235960__mffm__chains-rattling.aac",
+  "/audio/spooky/253534__nanakisan__evil-laugh-9.aac",
+  "/audio/spooky/266359__ddarkerthanblackk__witch_laugh.aac",
+  "/audio/spooky/267179__brainclaim__scary-ghost-wolf-howling.aac",
+  "/audio/spooky/277323__extx__owl-hoots.aac",
+  "/audio/spooky/329519__sirbedlam__ghost-moan-1.aac",
+  "/audio/spooky/393801__howardv__door-long-creak-5.aac",
+  "/audio/spooky/589144__yogoorth__witchs-laugh.aac",
+  "/audio/spooky/590950__rudmer_rotteveel__creaky-door-closing-slowly.aac",
+  "/audio/spooky/679003__brandnewhexagon__creepy-footsteps-with-reverb.aac",
+  "/audio/spooky/698684__drdock__owls2.aac",
+  "/audio/spooky/741366__mish7913__hooded-crow-cawing.aac",
+  "/audio/spooky/874897__lreeve__creaky-footsteps-on-wood-floor.aac",
+];
+
 export const NOISE_MODES = new Map([
   [
     "white",
@@ -123,6 +152,17 @@ export const NOISE_MODES = new Map([
       title: "Beeping",
       kind: "beeping",
       artwork: "/img/beeping.jpg",
+    },
+  ],
+  [
+    "spooky",
+    {
+      id: "spooky",
+      title: "Spooky",
+      kind: "spooky",
+      soundscapeUrls: spookySoundscapeUrls,
+      urls: spookyUrls,
+      artwork: "/img/spooky.jpg",
     },
   ],
 ]);

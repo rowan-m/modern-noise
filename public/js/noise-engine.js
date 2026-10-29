@@ -47,8 +47,13 @@ export class NoiseEngine {
     this.activeBeepGain = null;
     this.beepingTimeout = null;
     this.clipTimeout = null;
+    this.soundscapeTimeout = null;
     this.activeBuffers = [];
+    this.activeSoundscapeBuffers = [];
+    this.lastSoundscapeIndex = -1;
+    this.lastEffectIndex = -1;
     this.audioSources = new Set();
+    this.soundscapeGains = new Set();
   }
 
   setLoading(loading) {
@@ -165,6 +170,9 @@ export class NoiseEngine {
         break;
       case "beeping":
         this.startBeepingNoise(currentGen);
+        break;
+      case "spooky":
+        void this.startSpookyNoise(mode.soundscapeUrls, mode.urls, currentGen);
         break;
     }
   }
@@ -379,6 +387,288 @@ export class NoiseEngine {
     audioSource.start();
   }
 
+  shuffleUrls(urls) {
+    if (urls.length <= 1) return [...urls];
+    const startOffset = Math.floor(this.randomFn() * urls.length);
+    return [...urls.slice(startOffset), ...urls.slice(0, startOffset)];
+  }
+
+  partitionCachedUrls(urls, targetBuffers) {
+    const uncached = [];
+    for (const url of urls) {
+      if (this.sampleBufferCache.has(url)) {
+        targetBuffers.push(this.sampleBufferCache.get(url));
+      } else {
+        uncached.push(url);
+      }
+    }
+    return uncached;
+  }
+
+  async startSpookyNoise(soundscapeUrls, effectUrls, gen) {
+    this.abortController = new AbortController();
+    const { signal } = this.abortController;
+
+    const soundscapeSet = new Set(soundscapeUrls);
+    const uncachedSoundscapes = this.partitionCachedUrls(
+      soundscapeUrls,
+      this.activeSoundscapeBuffers,
+    );
+    const uncachedEffects = this.partitionCachedUrls(
+      effectUrls,
+      this.activeBuffers,
+    );
+
+    const state = {
+      soundscapeStarted: this.activeSoundscapeBuffers.length > 0,
+      effectsStarted: this.activeBuffers.length > 0,
+    };
+
+    if (state.soundscapeStarted) {
+      this.setLoading(false);
+      this.scheduleNextSoundscape(gen);
+    }
+    if (state.effectsStarted) {
+      this.setLoading(false);
+      this.scheduleNextSpookyEffect(gen, true);
+    }
+    if (
+      !state.soundscapeStarted &&
+      !state.effectsStarted &&
+      (uncachedSoundscapes.length > 0 || uncachedEffects.length > 0)
+    ) {
+      this.setLoading(true);
+    }
+
+    const orderedSoundscapes = this.shuffleUrls(uncachedSoundscapes);
+    const orderedEffects = this.shuffleUrls(uncachedEffects);
+    const orderedQueue = [
+      ...orderedSoundscapes.slice(0, 1),
+      ...orderedEffects.slice(0, 1),
+      ...orderedSoundscapes.slice(1),
+      ...orderedEffects.slice(1),
+    ];
+
+    if (orderedQueue.length === 0) return;
+
+    await this.decodeSpookyQueue(
+      orderedQueue,
+      soundscapeSet,
+      state,
+      signal,
+      gen,
+    );
+
+    if (
+      !signal.aborted &&
+      this.generation === gen &&
+      !state.soundscapeStarted &&
+      !state.effectsStarted
+    ) {
+      this.setLoading(false);
+    }
+  }
+
+  async decodeSpookyQueue(orderedQueue, soundscapeSet, state, signal, gen) {
+    let cursor = 0;
+    const runWorker = async () => {
+      while (
+        cursor < orderedQueue.length &&
+        !signal.aborted &&
+        this.generation === gen
+      ) {
+        const url = orderedQueue.at(cursor);
+        cursor += 1;
+        if (!url) break;
+
+        const decoded = await this.fetchAndDecodeClip(url, signal);
+        if (signal.aborted || this.generation !== gen || !this.isPlaying) {
+          return;
+        }
+        if (decoded) {
+          this.handleDecodedSpookyBuffer(
+            url,
+            decoded,
+            soundscapeSet,
+            state,
+            gen,
+          );
+        }
+      }
+    };
+
+    const workerCount = Math.min(DECODE_CONCURRENCY, orderedQueue.length);
+    await Promise.all(Array.from({ length: workerCount }, () => runWorker()));
+  }
+
+  handleDecodedSpookyBuffer(url, decoded, soundscapeSet, state, gen) {
+    if (soundscapeSet.has(url)) {
+      this.activeSoundscapeBuffers.push(decoded);
+      if (!state.soundscapeStarted) {
+        state.soundscapeStarted = true;
+        this.setLoading(false);
+        this.scheduleNextSoundscape(gen);
+      }
+      return;
+    }
+
+    this.activeBuffers.push(decoded);
+    if (!state.effectsStarted) {
+      state.effectsStarted = true;
+      this.setLoading(false);
+      this.scheduleNextSpookyEffect(gen, true);
+    }
+  }
+
+  pickNextIndex(length, lastIndex) {
+    if (length <= 1) return 0;
+    let index = Math.floor(this.randomFn() * length);
+    if (index === lastIndex) {
+      index = (index + 1) % length;
+    }
+    return index;
+  }
+
+  scheduleNextSoundscape(gen) {
+    if (
+      !this.isPlaying ||
+      this.generation !== gen ||
+      !this.audioContext ||
+      this.activeSoundscapeBuffers.length === 0
+    ) {
+      return;
+    }
+
+    const index = this.pickNextIndex(
+      this.activeSoundscapeBuffers.length,
+      this.lastSoundscapeIndex,
+    );
+    this.lastSoundscapeIndex = index;
+    const audioBuffer = this.activeSoundscapeBuffers.at(index);
+    if (!audioBuffer) return;
+
+    const duration = Math.max(1, audioBuffer.duration || 10);
+    const fadeTime = Math.min(2.5, duration * 0.25);
+    const targetGain = 0.55;
+    const now = this.audioContext.currentTime;
+
+    const soundscapeGain = this.audioContext.createGain();
+    soundscapeGain.gain.setValueAtTime(0, now);
+    soundscapeGain.gain.linearRampToValueAtTime(targetGain, now + fadeTime);
+    soundscapeGain.gain.setValueAtTime(
+      targetGain,
+      Math.max(now + fadeTime, now + duration - fadeTime),
+    );
+    soundscapeGain.gain.linearRampToValueAtTime(0, now + duration);
+
+    const audioSource = this.audioContext.createBufferSource();
+    audioSource.buffer = audioBuffer;
+
+    this.audioSources.add(audioSource);
+    this.soundscapeGains.add(soundscapeGain);
+
+    audioSource.onended = () => {
+      audioSource.disconnect();
+      soundscapeGain.disconnect();
+      this.audioSources.delete(audioSource);
+      this.soundscapeGains.delete(soundscapeGain);
+    };
+
+    audioSource.connect(soundscapeGain);
+    soundscapeGain.connect(this.masterGain);
+    audioSource.start();
+
+    const nextTransitionMs = Math.max(0.5, duration - fadeTime) * 1000;
+    if (this.soundscapeTimeout) {
+      clearTimeout(this.soundscapeTimeout);
+    }
+    this.soundscapeTimeout = setTimeout(() => {
+      this.scheduleNextSoundscape(gen);
+    }, nextTransitionMs);
+  }
+
+  scheduleNextSpookyEffect(gen, isFirst = false) {
+    if (!this.isPlaying || this.generation !== gen) return;
+
+    if (isFirst) {
+      const initialDelayMs = (this.randomFn() * 2 + 1.5) * 1000;
+      if (this.clipTimeout) {
+        clearTimeout(this.clipTimeout);
+      }
+      this.clipTimeout = setTimeout(() => {
+        this.scheduleNextSpookyEffect(gen, false);
+      }, initialDelayMs);
+      return;
+    }
+
+    const playedDuration = this.playSpookyEffect();
+    const waitSeconds =
+      Math.min(Math.max(playedDuration, 1.5), 8) + 3.5 + this.randomFn() * 4.5;
+    if (this.clipTimeout) {
+      clearTimeout(this.clipTimeout);
+    }
+    this.clipTimeout = setTimeout(() => {
+      this.scheduleNextSpookyEffect(gen, false);
+    }, waitSeconds * 1000);
+  }
+
+  playSpookyEffect() {
+    if (!this.audioContext || this.activeBuffers.length === 0) return 0;
+
+    const index = this.pickNextIndex(
+      this.activeBuffers.length,
+      this.lastEffectIndex,
+    );
+    this.lastEffectIndex = index;
+    const audioBuffer = this.activeBuffers.at(index);
+    if (!audioBuffer) return 0;
+
+    const effectGain = this.audioContext.createGain();
+    effectGain.gain.value = 0.85;
+
+    const audioSource = this.audioContext.createBufferSource();
+    audioSource.buffer = audioBuffer;
+    this.audioSources.add(audioSource);
+    this.soundscapeGains.add(effectGain);
+
+    audioSource.onended = () => {
+      audioSource.disconnect();
+      effectGain.disconnect();
+      this.audioSources.delete(audioSource);
+      this.soundscapeGains.delete(effectGain);
+    };
+
+    audioSource.connect(effectGain);
+    effectGain.connect(this.masterGain);
+    audioSource.start();
+    return audioBuffer.duration || 2;
+  }
+
+  stopAndDisconnectNode(node, label) {
+    if (!node) return;
+    try {
+      node.stop();
+    } catch (error) {
+      console.error(`Error stopping ${label}:`, error);
+    }
+    node.disconnect();
+  }
+
+  clearAllTimers() {
+    if (this.beepingTimeout) {
+      clearTimeout(this.beepingTimeout);
+      this.beepingTimeout = null;
+    }
+    if (this.clipTimeout) {
+      clearTimeout(this.clipTimeout);
+      this.clipTimeout = null;
+    }
+    if (this.soundscapeTimeout) {
+      clearTimeout(this.soundscapeTimeout);
+      this.soundscapeTimeout = null;
+    }
+  }
+
   teardownCurrentNoise() {
     this.generation += 1;
 
@@ -389,60 +679,36 @@ export class NoiseEngine {
 
     this.setLoading(false);
 
-    if (this.noiseNode) {
-      try {
-        this.noiseNode.stop();
-      } catch (error) {
-        console.error("Error stopping noise node:", error);
-      }
-      this.noiseNode.disconnect();
-      this.noiseNode = null;
-    }
+    this.stopAndDisconnectNode(this.noiseNode, "noise node");
+    this.noiseNode = null;
 
-    if (this.trafficFilter) {
-      this.trafficFilter.disconnect();
-      this.trafficFilter = null;
-    }
+    this.trafficFilter?.disconnect();
+    this.trafficFilter = null;
 
-    if (this.trafficRumbleGain) {
-      this.trafficRumbleGain.disconnect();
-      this.trafficRumbleGain = null;
-    }
+    this.trafficRumbleGain?.disconnect();
+    this.trafficRumbleGain = null;
 
-    if (this.activeOscillator) {
-      try {
-        this.activeOscillator.stop();
-      } catch (error) {
-        console.error("Error stopping oscillator:", error);
-      }
-      this.activeOscillator.disconnect();
-      this.activeOscillator = null;
-    }
+    this.stopAndDisconnectNode(this.activeOscillator, "oscillator");
+    this.activeOscillator = null;
 
-    if (this.activeBeepGain) {
-      this.activeBeepGain.disconnect();
-      this.activeBeepGain = null;
-    }
+    this.activeBeepGain?.disconnect();
+    this.activeBeepGain = null;
 
-    if (this.beepingTimeout) {
-      clearTimeout(this.beepingTimeout);
-      this.beepingTimeout = null;
-    }
-
-    if (this.clipTimeout) {
-      clearTimeout(this.clipTimeout);
-      this.clipTimeout = null;
-    }
+    this.clearAllTimers();
 
     for (const source of this.audioSources) {
-      try {
-        source.stop();
-      } catch (error) {
-        console.error("Error stopping audio source:", error);
-      }
-      source.disconnect();
+      this.stopAndDisconnectNode(source, "audio source");
     }
     this.audioSources.clear();
+
+    for (const gainNode of this.soundscapeGains) {
+      gainNode.disconnect();
+    }
+    this.soundscapeGains.clear();
+
     this.activeBuffers = [];
+    this.activeSoundscapeBuffers = [];
+    this.lastSoundscapeIndex = -1;
+    this.lastEffectIndex = -1;
   }
 }
