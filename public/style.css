@@ -159,6 +159,7 @@ h1 > span {
 #buttons {
   padding: var(--unit);
   display: grid;
+  justify-content: center;
   grid-template-columns: repeat(4, var(--butt-size));
   grid-template-rows: repeat(3, var(--butt-size));
   grid-column-gap: var(--unit);
