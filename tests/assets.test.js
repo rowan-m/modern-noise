@@ -20,7 +20,7 @@ test("every configured audio clip URL exists on disk in public/", () => {
     ...spookySoundscapeUrls,
     ...spookyUrls,
   ];
-  expect(allUrls).toHaveLength(79);
+  expect(allUrls).toHaveLength(93);
 
   for (const url of allUrls) {
     const filePath = path.join(PUBLIC_DIR, url);

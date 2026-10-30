@@ -106,26 +106,40 @@ https://freesound.org/people/Rock%20Savage/sounds/59263/
 
 ### Spooky
 
+https://freesound.org/people/137SOUNDS/sounds/246487/  
+https://freesound.org/people/acekasbo/sounds/167087/  
+https://freesound.org/people/AmeAngelofSin/sounds/326895/  
+https://freesound.org/people/Aris621/sounds/478145/  
 https://freesound.org/people/Billy_Storm/sounds/164285/  
 https://freesound.org/people/BrainClaim/sounds/267179/  
 https://freesound.org/people/BrandNewHexagon/sounds/679003/  
+https://freesound.org/people/CadereSounds/sounds/222547/  
 https://freesound.org/people/CosmicEmbers/sounds/160689/  
+https://freesound.org/people/DamTheGreat/sounds/813124/  
 https://freesound.org/people/ddarkerthanblackk/sounds/266359/  
-https://freesound.org/people/drdock/sounds/698684/  
 https://freesound.org/people/DWOBoyle/sounds/147303/  
-https://freesound.org/people/Extx/sounds/277323/  
+https://freesound.org/people/freemaster2/sounds/385097/  
+https://freesound.org/people/Gerent/sounds/558398/  
 https://freesound.org/people/HowardV/sounds/393801/  
+https://freesound.org/people/ingudios/sounds/119468/  
 https://freesound.org/people/InspectorJ/sounds/402095/  
+https://freesound.org/people/JuliusMabe/sounds/445196/  
+https://freesound.org/people/junkyard_001/sounds/575806/  
+https://freesound.org/people/klankbeeld/sounds/240701/  
 https://freesound.org/people/klankbeeld/sounds/261399/  
 https://freesound.org/people/lreeve/sounds/874897/  
 https://freesound.org/people/MaxDemianAGL/sounds/132251/  
-https://freesound.org/people/mffm/sounds/235960/  
 https://freesound.org/people/Mish7913/sounds/741366/  
 https://freesound.org/people/mistersherlock/sounds/159509/  
+https://freesound.org/people/mokasza/sounds/810171/  
 https://freesound.org/people/Nanakisan/sounds/253534/  
+https://freesound.org/people/noahpardo/sounds/345733/  
 https://freesound.org/people/original_sound/sounds/493545/  
 https://freesound.org/people/Rudmer_Rotteveel/sounds/590950/  
-https://freesound.org/people/SirBedlam/sounds/329519/  
+https://freesound.org/people/SamsCollegeAccount/sounds/722984/  
+https://freesound.org/people/SnowFightStudios/sounds/643741/  
 https://freesound.org/people/szegvari/sounds/617747/  
-https://freesound.org/people/Victor_Natas/sounds/612186/  
-https://freesound.org/people/Yogoorth/sounds/589144/
+https://freesound.org/people/theartisticfellow/sounds/132072/  
+https://freesound.org/people/TommasoMotteran/sounds/851791/  
+https://freesound.org/people/Yogoorth/sounds/589144/  
+https://freesound.org/people/ZHR%C3%98/sounds/528447/
