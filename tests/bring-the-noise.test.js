@@ -37,6 +37,7 @@ function renderAppFixture() {
 
 beforeEach(() => {
   document.body.innerHTML = "";
+  window.history.replaceState(null, "", "/");
   navigator.mediaSession.metadata = null;
   navigator.mediaSession.playbackState = "none";
 });
@@ -143,6 +144,34 @@ test("initApp populates initial White noise MediaMetadata and updates UI across 
   document.querySelector("#pause").click();
   expect(app.engine.isPlaying).toBe(false);
   expect(navigator.mediaSession.playbackState).toBe("paused");
+});
+
+test("initApp reads ?sound= URL param on startup, defaults to white, and updates URL on selection", () => {
+  renderAppFixture();
+  window.history.replaceState(null, "", "/?sound=spooky");
+
+  const app = noise.initApp();
+  expect(app.engine.noiseType).toBe("spooky");
+  expect(document.querySelector(".lcd-on").textContent).toBe("Spooky");
+  expect(document.querySelector("#spooky").getAttribute("aria-pressed")).toBe(
+    "true",
+  );
+  expect(window.location.search).toBe("?sound=spooky");
+
+  document.querySelector("#pink").click();
+  expect(app.engine.noiseType).toBe("pink");
+  expect(window.location.search).toBe("?sound=pink");
+
+  document.querySelector("#white").click();
+  expect(app.engine.noiseType).toBe("white");
+  expect(window.location.search).toBe("?sound=white");
+
+  // Unknown sound parameter falls back to white
+  renderAppFixture();
+  window.history.replaceState(null, "", "/?sound=nonexistent");
+  const fallbackApp = noise.initApp();
+  expect(fallbackApp.engine.noiseType).toBe("white");
+  expect(window.location.search).toBe("?sound=white");
 });
 
 test("volume slider maps 0..2 directly to 0%..200% without inversion", () => {
