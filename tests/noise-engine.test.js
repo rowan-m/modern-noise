@@ -249,18 +249,26 @@ describe("NoiseEngine", () => {
     // At 4s, both the 4th background tick and the 2nd foreground effect fire = 7 calls
     expect(playClipSpy).toHaveBeenCalledTimes(7);
 
-    // Extra scream stream (interval [30, 120]s with initialDelay: true) has not fired yet at 4s
+    // Extra scream stream (interval [50, 70]s with initialDelay: true) has not fired yet at 4s
     expect(
       playClipSpy.mock.calls.some(([stream]) => stream?.buffers?.length === 22),
     ).toBe(false);
 
-    // Advance to 30s: the periodic scream stream fires a random scream from screamingUrls (22 clips)
-    vi.advanceTimersByTime(26000);
+    // Advance to 50s: the periodic scream stream fires its 1st scream from screamingUrls (22 clips)
+    vi.advanceTimersByTime(46000);
     expect(
       playClipSpy.mock.calls.filter(
         ([stream]) => stream?.buffers?.length === 22,
       ),
     ).toHaveLength(1);
+
+    // Advance another 50s (to 100s): the periodic scream stream fires its 2nd scream
+    vi.advanceTimersByTime(50000);
+    expect(
+      playClipSpy.mock.calls.filter(
+        ([stream]) => stream?.buffers?.length === 22,
+      ),
+    ).toHaveLength(2);
 
     engine.stop();
   });

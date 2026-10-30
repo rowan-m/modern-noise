@@ -190,7 +190,7 @@ export const NOISE_MODES = new Map([
       extraStreams: [
         {
           urls: screamingUrls,
-          interval: [30, 120],
+          interval: [50, 70],
           initialDelay: true,
         },
       ],
