@@ -5,6 +5,8 @@ export {
   NOISE_MODES,
   NOISE_TYPES,
   screamingUrls,
+  spookyAmbienceUrls,
+  spookyUrls,
   trafficUrls,
 } from "./js/audio-assets.js";
 export {

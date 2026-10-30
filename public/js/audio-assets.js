@@ -63,6 +63,59 @@ export const buildingUrls = [
   "/audio/construction/69891__costamonteiro__metro_under_construction.aac",
 ];
 
+export const spookyAmbienceUrls = [
+  "/audio/spooky/147303__dwoboyle__ambiance-eerie_wind-001.aac",
+  "/audio/spooky/159509__mistersherlock__halloween-graveyard-at-night-howling-wind.aac",
+  "/audio/spooky/222547__caderesounds__horror-cinema-3-2014.aac",
+  "/audio/spooky/261399__klankbeeld__horror-ambience-80-150112_0504.aac",
+  "/audio/spooky/402095__inspectorj__dramatic-organ-a.aac",
+  "/audio/spooky/493545__original_sound__1-dark-atmosphere-evil-presence-15-sec.aac",
+  "/audio/spooky/617747__szegvari__forest-birds-wind-dark-haunted-outdoor-eerie-atmo-atmosphere-cinematic.aac",
+  "/audio/spooky/851791__tommasomotteran__haunted-title-screen-ambient-horror-piano-coghezzi.aac",
+];
+
+export const spookyUrls = [
+  "/audio/spooky/119468__ingudios__metal-creak-4.aac",
+  "/audio/spooky/132072__theartisticfellow__creepy-girl-chanting.aac",
+  "/audio/spooky/132251__maxdemianagl__moaning_vanishing_ghost.aac",
+  "/audio/spooky/160689__cosmicembers__church-bell.aac",
+  "/audio/spooky/164285__billy_storm__ghostly_moan.aac",
+  "/audio/spooky/167087__acekasbo__creepy-whisper-go-outside.aac",
+  "/audio/spooky/177782__dheming__pipe_drag_01.aac",
+  "/audio/spooky/220302__gabrielaupf__screaming_woman_horror.aac",
+  "/audio/spooky/240701__klankbeeld__horror-ghost-kid-06-140222_0114.aac",
+  "/audio/spooky/242634__reitanna__weird-laugh.aac",
+  "/audio/spooky/246487__137sounds__freesound-single-zombie-groan.aac",
+  "/audio/spooky/253534__nanakisan__evil-laugh-9.aac",
+  "/audio/spooky/266359__ddarkerthanblackk__witch_laugh.aac",
+  "/audio/spooky/267179__brainclaim__scary-ghost-wolf-howling.aac",
+  "/audio/spooky/326895__ameangelofsin__horror-whispers-and-heavy-breathing.aac",
+  "/audio/spooky/345733__noahpardo__deep-growl-1.aac",
+  "/audio/spooky/385097__freemaster2__owl-hoot.aac",
+  "/audio/spooky/393801__howardv__door-long-creak-5.aac",
+  "/audio/spooky/413911__felixblume__rythmic-footsteps-over-wood-floor.aac",
+  "/audio/spooky/445196__juliusmabe__creature-moan.aac",
+  "/audio/spooky/464245__snowblindsounddepot__creepy-laughing.aac",
+  "/audio/spooky/478145__aris621__nasty-knife-stab-2.aac",
+  "/audio/spooky/487405__ultima_cj0628__creepy-laugh.aac",
+  "/audio/spooky/513928__komitwav__reversed-voice.aac",
+  "/audio/spooky/528447__zhr__horror-piano.aac",
+  "/audio/spooky/558398__gerent__owl_hooting_000102_0145s3-002-070-000-002-007-015.aac",
+  "/audio/spooky/575806__junkyard_001__banshee-scream.aac",
+  "/audio/spooky/590950__rudmer_rotteveel__creaky-door-closing-slowly.aac",
+  "/audio/spooky/643741__snowfightstudios__ghostly-moan.aac",
+  "/audio/spooky/679003__brandnewhexagon__creepy-footsteps-with-reverb.aac",
+  "/audio/spooky/722984__samscollegeaccount__monster-growl.aac",
+  "/audio/spooky/738784__cheatinsloth__heavy-stone-scraping-being-dragged.aac",
+  "/audio/spooky/741366__mish7913__hooded-crow-cawing.aac",
+  "/audio/spooky/753925__xkeril__axe-chopping-wood.aac",
+  "/audio/spooky/792795__starlion365__horror-possessed-scream.aac",
+  "/audio/spooky/810171__mokasza__lone-wolf-howling.aac",
+  "/audio/spooky/813124__damthegreat__ominous-air-raid-siren.aac",
+  "/audio/spooky/837802__bikkit99__horror-scream-2.aac",
+  "/audio/spooky/874897__lreeve__creaky-footsteps-on-wood-floor.aac",
+];
+
 export const NOISE_MODES = new Map([
   [
     "white",
@@ -123,6 +176,24 @@ export const NOISE_MODES = new Map([
       title: "Beeping",
       kind: "beeping",
       artwork: "/img/beeping.jpg",
+    },
+  ],
+  [
+    "spooky",
+    {
+      id: "spooky",
+      title: "Spooky",
+      kind: "sampled",
+      backgroundUrls: spookyAmbienceUrls,
+      urls: spookyUrls,
+      interval: [3, 6],
+      extraStreams: [
+        {
+          urls: screamingUrls,
+          interval: [50, 70],
+        },
+      ],
+      artwork: "/img/spooky.jpg",
     },
   ],
 ]);

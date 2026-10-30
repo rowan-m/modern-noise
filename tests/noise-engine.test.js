@@ -213,4 +213,71 @@ describe("NoiseEngine", () => {
       0.05,
     );
   });
+
+  test("spooky mode uses generalized sampled playback for background ambience and foreground effects", async () => {
+    const ctx = new MockAudioContext();
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+    });
+
+    const engine = new NoiseEngine({
+      createAudioContext: () => ctx,
+      fetchFn,
+      randomFn: () => 0,
+    });
+
+    const playClipSpy = vi.spyOn(engine, "playRandomClip");
+
+    engine.setNoiseType("spooky");
+    engine.start();
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(engine.activeBuffers).toHaveLength(39);
+    // 1 initial background soundscape + 1 initial foreground effect
+    expect(playClipSpy).toHaveBeenCalledTimes(2);
+
+    // Mock AudioBuffer has duration: 1s -> background chains every 1s,
+    // while foreground waits duration (1s) + interval [3, 6]s (3s) = 4s
+    vi.advanceTimersByTime(3500);
+    // 2 initial + 3 background ticks (at 1s, 2s, 3s) = 5 calls
+    expect(playClipSpy).toHaveBeenCalledTimes(5);
+
+    vi.advanceTimersByTime(500);
+    // At 4s, both the 4th background tick and the 2nd foreground effect fire = 7 calls
+    expect(playClipSpy).toHaveBeenCalledTimes(7);
+
+    // Extra scream stream (interval [50, 70]s) has not fetched or played any /audio/screams/ clips yet at 4s
+    expect(
+      fetchFn.mock.calls.some(([url]) => url.startsWith("/audio/screams/")),
+    ).toBe(false);
+
+    // Advance to 50s: the periodic scream stream picks a clip from screamingUrls (/audio/screams/), fetches/decodes it, and plays it
+    await vi.advanceTimersByTimeAsync(46000);
+    const screamFetchesAt50s = fetchFn.mock.calls.filter(([url]) =>
+      url.startsWith("/audio/screams/"),
+    );
+    expect(screamFetchesAt50s).toHaveLength(1);
+    expect(
+      playClipSpy.mock.calls.filter(([stream]) =>
+        stream?.lastPlayedUrl?.startsWith("/audio/screams/"),
+      ),
+    ).toHaveLength(1);
+
+    // Advance another 50s (to 100s): the periodic scream stream picks a second clip from /audio/screams/ and plays it
+    await vi.advanceTimersByTimeAsync(50000);
+    const screamFetchesAt100s = fetchFn.mock.calls.filter(([url]) =>
+      url.startsWith("/audio/screams/"),
+    );
+    expect(screamFetchesAt100s).toHaveLength(2);
+    expect(
+      playClipSpy.mock.calls.filter(([stream]) =>
+        stream?.lastPlayedUrl?.startsWith("/audio/screams/"),
+      ),
+    ).toHaveLength(2);
+
+    engine.stop();
+  });
 });

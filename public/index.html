@@ -5,20 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="A modern noise machine for today's world — white, pink, and brown noise alongside screaming, construction, traffic, and beeping."
+      content="A modern noise machine for today's world — white, pink, and brown noise alongside screaming, construction, traffic, beeping, and spooky soundscapes."
     />
     <meta name="theme-color" content="#403c3c" />
+    <meta property="og:site_name" content="Modern noise machine" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content="Modern noise machine" />
     <meta
       property="og:description"
-      content="A modern noise machine for today's world — white, pink, and brown noise alongside screaming, construction, traffic, and beeping."
+      content="A modern noise machine for today's world — white, pink, and brown noise alongside screaming, construction, traffic, beeping, and spooky soundscapes."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://modern-noise.web.app/" />
     <meta
       property="og:image"
-      content="https://modern-noise.web.app/img/modern-noise-machine-1024.jpg"
+      content="https://modern-noise.web.app/img/modern-noise-preview.jpg"
     />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="800" />
+    <meta
+      property="og:image:alt"
+      content="Modern noise machine interface in Spooky mode with a badge reading: Now with added spooky sounds!"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Modern noise machine" />
+    <meta
+      name="twitter:description"
+      content="A modern noise machine for today's world — white, pink, and brown noise alongside screaming, construction, traffic, beeping, and spooky soundscapes."
+    />
+    <meta
+      name="twitter:image"
+      content="https://modern-noise.web.app/img/modern-noise-preview.jpg"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="Modern noise machine interface in Spooky mode with a badge reading: Now with added spooky sounds!"
+    />
+    <link rel="canonical" href="https://modern-noise.web.app/" />
     <link rel="icon" href="/img/modern-noise-machine-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -27,7 +51,7 @@
       rel="stylesheet"
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&family=Noto+Emoji&text=%E2%8F%B8%E2%96%B6%E2%AC%9C%F0%9F%91%84%F0%9F%91%8B%F0%9F%92%BB%F0%9F%93%9F%F0%9F%98%B1%F0%9F%9A%97%F0%9F%9A%98%F0%9F%9A%A7%F0%9F%9A%A8%F0%9F%9B%A0%F0%9F%9F%A4%F0%9F%A9%B7&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&family=Noto+Emoji&text=%E2%8F%B8%E2%96%B6%E2%AC%9C%F0%9F%8E%83%F0%9F%91%84%F0%9F%91%8B%F0%9F%92%80%F0%9F%92%BB%F0%9F%93%9F%F0%9F%98%B1%F0%9F%9A%97%F0%9F%9A%98%F0%9F%9A%A7%F0%9F%9A%A8%F0%9F%9B%A0%F0%9F%9F%A4%F0%9F%A9%B7&display=swap"
       rel="stylesheet"
     />
     <link href="/style.css" rel="stylesheet" />
@@ -55,6 +79,7 @@
         <span id="building-icon" class="lcd-icon" aria-hidden="true">🚧</span>
         <span id="traffic-icon" class="lcd-icon" aria-hidden="true">🚘</span>
         <span id="beeping-icon" class="lcd-icon" aria-hidden="true">🚨</span>
+        <span id="spooky-icon" class="lcd-icon" aria-hidden="true">🎃</span>
         <span
           class="lcd-text"
           role="status"
@@ -137,6 +162,14 @@
           class="noise-button"
         >
           <span class="black">📟</span>
+        </button>
+        <button
+          id="spooky"
+          type="button"
+          aria-label="Spooky noise"
+          class="noise-button"
+        >
+          <span class="black">💀</span>
         </button>
 
         <button

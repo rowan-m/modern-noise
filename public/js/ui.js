@@ -44,6 +44,27 @@ function updateMediaSessionPlayback(isPlaying) {
   }
 }
 
+function getInitialSoundFromUrl() {
+  if (typeof window === "undefined" || !window.location) return "white";
+  const requested = new URLSearchParams(window.location.search)
+    .get("sound")
+    ?.toLowerCase();
+  return requested && NOISE_MODES.has(requested) ? requested : "white";
+}
+
+function updateSoundInUrl(noiseType) {
+  if (
+    typeof window === "undefined" ||
+    !window.location ||
+    !window.history?.replaceState
+  ) {
+    return;
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.set("sound", noiseType);
+  window.history.replaceState(null, "", url);
+}
+
 export function initApp({ root = document, engineOptions = {} } = {}) {
   const backgroundAudio = root.querySelector("audio");
   if (backgroundAudio) {
@@ -51,6 +72,10 @@ export function initApp({ root = document, engineOptions = {} } = {}) {
   }
 
   const engine = new NoiseEngine(engineOptions);
+  const initialSound = getInitialSoundFromUrl();
+  if (initialSound !== engine.noiseType) {
+    engine.setNoiseType(initialSound);
+  }
 
   const syncTransportUi = () => {
     const playIcon = root.querySelector("#play-icon");
@@ -92,6 +117,7 @@ export function initApp({ root = document, engineOptions = {} } = {}) {
 
     syncTransportUi();
     updateMediaSessionMetadata(mode);
+    updateSoundInUrl(noiseType);
   };
 
   const startPlayback = () => {
