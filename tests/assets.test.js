@@ -5,7 +5,6 @@ import {
   buildingUrls,
   NOISE_MODES,
   screamingUrls,
-  spookySoundscapeUrls,
   spookyUrls,
   trafficUrls,
 } from "../public/js/audio-assets.js";
@@ -17,7 +16,6 @@ test("every configured audio clip URL exists on disk in public/", () => {
     ...screamingUrls,
     ...trafficUrls,
     ...buildingUrls,
-    ...spookySoundscapeUrls,
     ...spookyUrls,
   ];
   expect(allUrls).toHaveLength(93);

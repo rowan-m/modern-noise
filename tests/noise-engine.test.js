@@ -214,7 +214,7 @@ describe("NoiseEngine", () => {
     );
   });
 
-  test("spooky mode layers evolving background soundscapes with spaced foreground effects", async () => {
+  test("spooky mode uses generalized sampled playback with its configured interval", async () => {
     const ctx = new MockAudioContext();
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
@@ -228,30 +228,22 @@ describe("NoiseEngine", () => {
       randomFn: () => 0,
     });
 
-    const soundscapeSpy = vi.spyOn(engine, "scheduleNextSoundscape");
-    const effectSpy = vi.spyOn(engine, "playSpookyEffect");
+    const playClipSpy = vi.spyOn(engine, "playRandomClip");
 
     engine.setNoiseType("spooky");
     engine.start();
 
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(engine.activeSoundscapeBuffers.length).toBeGreaterThan(0);
-    expect(engine.activeBuffers.length).toBeGreaterThan(0);
-    expect(soundscapeSpy).toHaveBeenCalledTimes(1);
-    // Foreground effects wait for initial ambient delay (1500ms when randomFn returns 0)
-    expect(effectSpy).toHaveBeenCalledTimes(0);
+    expect(engine.activeBuffers).toHaveLength(37);
+    expect(playClipSpy).toHaveBeenCalledTimes(1);
 
+    // Spooky interval is [2, 3.5]s -> 2000ms when randomFn returns 0
     vi.advanceTimersByTime(1500);
-    expect(effectSpy).toHaveBeenCalledTimes(1);
+    expect(playClipSpy).toHaveBeenCalledTimes(1);
 
-    // Next foreground effect does not fire after 1.5s (unlike chaotic sampled modes)
-    vi.advanceTimersByTime(1500);
-    expect(effectSpy).toHaveBeenCalledTimes(1);
-
-    // Fires after clipDuration (2s fallback) + 3.5s = 5.5s total (4000ms remaining)
-    vi.advanceTimersByTime(4000);
-    expect(effectSpy).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(500);
+    expect(playClipSpy).toHaveBeenCalledTimes(2);
 
     engine.stop();
   });
