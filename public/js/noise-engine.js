@@ -47,7 +47,7 @@ export class NoiseEngine {
     this.activeOscillator = null;
     this.activeBeepGain = null;
     this.beepingTimeout = null;
-    this.clipTimeout = null;
+    this.clipTimeouts = new Set();
     this.activeBuffers = [];
     this.lastPlayedBuffer = null;
     this.audioSources = new Set();
@@ -150,6 +150,7 @@ export class NoiseEngine {
 
   buildCurrentNoise() {
     this.teardownCurrentNoise();
+    this.abortController = new AbortController();
     const currentGen = this.generation;
     const mode = NOISE_MODES.get(this.noiseType);
     if (!mode) return;
@@ -159,11 +160,21 @@ export class NoiseEngine {
         this.startColouredNoise(mode.id);
         break;
       case "sampled":
-        void this.startSampledNoise(mode.urls, currentGen, mode.interval);
+        if (mode.backgroundUrls) {
+          void this.startSampledNoise(mode.backgroundUrls, currentGen, {
+            background: true,
+          });
+        }
+        void this.startSampledNoise(mode.urls, currentGen, {
+          interval: mode.interval,
+          waitForClip: Boolean(mode.backgroundUrls),
+        });
         break;
       case "traffic":
         this.startTrafficRumble();
-        void this.startSampledNoise(mode.urls, currentGen, mode.interval);
+        void this.startSampledNoise(mode.urls, currentGen, {
+          interval: mode.interval,
+        });
         break;
       case "beeping":
         this.startBeepingNoise(currentGen);
@@ -269,32 +280,60 @@ export class NoiseEngine {
     return copy;
   }
 
-  async startSampledNoise(urls, gen, interval = DEFAULT_CLIP_INTERVAL) {
-    this.abortController = new AbortController();
-    const { signal } = this.abortController;
-
+  partitionCachedUrls(urls, targetBuffers) {
     const uncachedUrls = [];
     for (const url of urls) {
       if (this.sampleBufferCache.has(url)) {
-        this.activeBuffers.push(this.sampleBufferCache.get(url));
+        targetBuffers.push(this.sampleBufferCache.get(url));
       } else {
         uncachedUrls.push(url);
       }
     }
+    return uncachedUrls;
+  }
 
-    let loopStarted = false;
-    if (this.activeBuffers.length > 0) {
-      loopStarted = true;
+  startStreamLoop(gen, stream) {
+    if (stream.started) return;
+    stream.started = true;
+    if (!stream.background) {
       this.setLoading(false);
-      this.scheduleNextClip(gen, interval);
-    } else if (uncachedUrls.length > 0) {
+    }
+    this.scheduleNextClip(gen, stream);
+  }
+
+  async startSampledNoise(
+    urls,
+    gen,
+    {
+      interval = DEFAULT_CLIP_INTERVAL,
+      background = false,
+      waitForClip = false,
+    } = {},
+  ) {
+    this.abortController ??= new AbortController();
+    const { signal } = this.abortController;
+    const stream = {
+      buffers: [],
+      interval,
+      background,
+      waitForClip,
+      started: false,
+      lastPlayed: null,
+    };
+    if (!background) {
+      this.activeBuffers = stream.buffers;
+    }
+
+    const uncachedUrls = this.partitionCachedUrls(urls, stream.buffers);
+    if (stream.buffers.length > 0) {
+      this.startStreamLoop(gen, stream);
+    } else if (uncachedUrls.length > 0 && !background) {
       this.setLoading(true);
     }
 
     if (uncachedUrls.length === 0) return;
 
     const orderedUrls = this.shuffleUrls(uncachedUrls);
-
     let cursor = 0;
     const runWorker = async () => {
       while (
@@ -311,12 +350,8 @@ export class NoiseEngine {
           return;
         }
         if (decoded) {
-          this.activeBuffers.push(decoded);
-          if (!loopStarted) {
-            loopStarted = true;
-            this.setLoading(false);
-            this.scheduleNextClip(gen, interval);
-          }
+          stream.buffers.push(decoded);
+          this.startStreamLoop(gen, stream);
         }
       }
     };
@@ -324,7 +359,12 @@ export class NoiseEngine {
     const workerCount = Math.min(DECODE_CONCURRENCY, orderedUrls.length);
     await Promise.all(Array.from({ length: workerCount }, () => runWorker()));
 
-    if (!signal.aborted && this.generation === gen && !loopStarted) {
+    if (
+      !signal.aborted &&
+      this.generation === gen &&
+      !stream.started &&
+      !background
+    ) {
       this.setLoading(false);
     }
   }
@@ -355,35 +395,44 @@ export class NoiseEngine {
     }
   }
 
-  scheduleNextClip(gen, interval = DEFAULT_CLIP_INTERVAL) {
+  scheduleNextClip(gen, stream) {
     if (!this.isPlaying || this.generation !== gen) return;
 
-    this.playRandomClip();
-    const [minDelay = 1, maxDelay = 1.5] = interval;
-    const nextIntervalMs =
-      (this.randomFn() * (maxDelay - minDelay) + minDelay) * 1000;
-    if (this.clipTimeout) {
-      clearTimeout(this.clipTimeout);
+    const duration = this.playRandomClip(stream);
+    const [minDelay = 1, maxDelay = 1.5] =
+      stream?.interval ?? DEFAULT_CLIP_INTERVAL;
+    const baseDelay = this.randomFn() * (maxDelay - minDelay) + minDelay;
+    let nextDelaySec = baseDelay;
+    if (stream?.background) {
+      nextDelaySec = Math.max(1, (duration || 10) - 1);
+    } else if (stream?.waitForClip) {
+      nextDelaySec = Math.min(duration || 0, 8) + baseDelay;
     }
-    this.clipTimeout = setTimeout(() => {
-      this.scheduleNextClip(gen, interval);
-    }, nextIntervalMs);
+
+    const timeoutId = setTimeout(() => {
+      this.clipTimeouts.delete(timeoutId);
+      this.scheduleNextClip(gen, stream);
+    }, nextDelaySec * 1000);
+    this.clipTimeouts.add(timeoutId);
   }
 
-  playRandomClip() {
-    if (!this.audioContext || this.activeBuffers.length === 0) return;
+  playRandomClip(
+    stream = { buffers: this.activeBuffers, lastPlayed: this.lastPlayedBuffer },
+  ) {
+    const buffers = stream.buffers;
+    if (!this.audioContext || buffers.length === 0) return 0;
 
-    let randomIndex = Math.floor(this.randomFn() * this.activeBuffers.length);
-    if (
-      this.activeBuffers.length > 1 &&
-      this.activeBuffers.at(randomIndex) === this.lastPlayedBuffer
-    ) {
-      randomIndex = (randomIndex + 1) % this.activeBuffers.length;
+    let randomIndex = Math.floor(this.randomFn() * buffers.length);
+    if (buffers.length > 1 && buffers.at(randomIndex) === stream.lastPlayed) {
+      randomIndex = (randomIndex + 1) % buffers.length;
     }
 
-    const audioBuffer = this.activeBuffers.at(randomIndex);
-    if (!audioBuffer) return;
-    this.lastPlayedBuffer = audioBuffer;
+    const audioBuffer = buffers.at(randomIndex);
+    if (!audioBuffer) return 0;
+    stream.lastPlayed = audioBuffer;
+    if (!stream.background) {
+      this.lastPlayedBuffer = audioBuffer;
+    }
 
     const audioSource = this.audioContext.createBufferSource();
     audioSource.buffer = audioBuffer;
@@ -396,6 +445,7 @@ export class NoiseEngine {
 
     audioSource.connect(this.masterGain);
     audioSource.start();
+    return audioBuffer.duration || 0;
   }
 
   stopAndDisconnectNode(node, label) {
@@ -438,10 +488,10 @@ export class NoiseEngine {
       this.beepingTimeout = null;
     }
 
-    if (this.clipTimeout) {
-      clearTimeout(this.clipTimeout);
-      this.clipTimeout = null;
+    for (const timeoutId of this.clipTimeouts) {
+      clearTimeout(timeoutId);
     }
+    this.clipTimeouts.clear();
 
     for (const source of this.audioSources) {
       this.stopAndDisconnectNode(source, "audio source");

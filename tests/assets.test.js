@@ -5,6 +5,7 @@ import {
   buildingUrls,
   NOISE_MODES,
   screamingUrls,
+  spookyAmbienceUrls,
   spookyUrls,
   trafficUrls,
 } from "../public/js/audio-assets.js";
@@ -16,9 +17,10 @@ test("every configured audio clip URL exists on disk in public/", () => {
     ...screamingUrls,
     ...trafficUrls,
     ...buildingUrls,
+    ...spookyAmbienceUrls,
     ...spookyUrls,
   ];
-  expect(allUrls).toHaveLength(93);
+  expect(allUrls).toHaveLength(92);
 
   for (const url of allUrls) {
     const filePath = path.join(PUBLIC_DIR, url);

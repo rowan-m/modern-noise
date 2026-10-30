@@ -214,7 +214,7 @@ describe("NoiseEngine", () => {
     );
   });
 
-  test("spooky mode uses generalized sampled playback with its configured interval", async () => {
+  test("spooky mode uses generalized sampled playback for background ambience and foreground effects", async () => {
     const ctx = new MockAudioContext();
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
@@ -235,15 +235,19 @@ describe("NoiseEngine", () => {
 
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(engine.activeBuffers).toHaveLength(37);
-    expect(playClipSpy).toHaveBeenCalledTimes(1);
+    expect(engine.activeBuffers).toHaveLength(28);
+    // 1 initial background soundscape + 1 initial foreground effect
+    expect(playClipSpy).toHaveBeenCalledTimes(2);
 
-    // Spooky interval is [2, 3.5]s -> 2000ms when randomFn returns 0
-    vi.advanceTimersByTime(1500);
-    expect(playClipSpy).toHaveBeenCalledTimes(1);
+    // Mock AudioBuffer has duration: 1s -> background chains every 1s,
+    // while foreground waits duration (1s) + interval [3, 6]s (3s) = 4s
+    vi.advanceTimersByTime(3500);
+    // 2 initial + 3 background ticks (at 1s, 2s, 3s) = 5 calls
+    expect(playClipSpy).toHaveBeenCalledTimes(5);
 
     vi.advanceTimersByTime(500);
-    expect(playClipSpy).toHaveBeenCalledTimes(2);
+    // At 4s, both the 4th background tick and the 2nd foreground effect fire = 7 calls
+    expect(playClipSpy).toHaveBeenCalledTimes(7);
 
     engine.stop();
   });
