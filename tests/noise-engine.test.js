@@ -235,7 +235,7 @@ describe("NoiseEngine", () => {
 
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(engine.activeBuffers).toHaveLength(28);
+    expect(engine.activeBuffers).toHaveLength(41);
     // 1 initial background soundscape + 1 initial foreground effect
     expect(playClipSpy).toHaveBeenCalledTimes(2);
 
