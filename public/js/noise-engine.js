@@ -399,14 +399,16 @@ export class NoiseEngine {
     if (!this.isPlaying || this.generation !== gen) return;
 
     const duration = this.playRandomClip(stream);
-    const [minDelay = 1, maxDelay = 1.5] =
-      stream?.interval ?? DEFAULT_CLIP_INTERVAL;
-    const baseDelay = this.randomFn() * (maxDelay - minDelay) + minDelay;
-    let nextDelaySec = baseDelay;
+    let nextDelaySec;
     if (stream?.background) {
       nextDelaySec = Math.max(1, (duration || 10) - 1);
-    } else if (stream?.waitForClip) {
-      nextDelaySec = Math.min(duration || 0, 8) + baseDelay;
+    } else {
+      const [minDelay = 1, maxDelay = 1.5] =
+        stream?.interval ?? DEFAULT_CLIP_INTERVAL;
+      const baseDelay = this.randomFn() * (maxDelay - minDelay) + minDelay;
+      nextDelaySec = stream?.waitForClip
+        ? Math.min(duration || 0, 8) + baseDelay
+        : baseDelay;
     }
 
     const timeoutId = setTimeout(() => {
