@@ -171,11 +171,8 @@ export class NoiseEngine {
         });
         if (mode.extraStreams) {
           for (const extra of mode.extraStreams) {
-            void this.startSampledNoise(extra.urls, currentGen, {
+            this.startPeriodicClipStream(extra.urls, currentGen, {
               interval: extra.interval,
-              initialDelay: Boolean(extra.initialDelay),
-              waitForClip: Boolean(extra.waitForClip),
-              primary: false,
             });
           }
         }
@@ -305,10 +302,65 @@ export class NoiseEngine {
   startStreamLoop(gen, stream) {
     if (stream.started) return;
     stream.started = true;
-    if (stream.primary) {
+    if (!stream.background) {
       this.setLoading(false);
     }
-    this.scheduleNextClip(gen, stream, { skipPlay: stream.initialDelay });
+    this.scheduleNextClip(gen, stream);
+  }
+
+  startPeriodicClipStream(
+    urls,
+    gen,
+    { interval = DEFAULT_CLIP_INTERVAL } = {},
+  ) {
+    if (!Array.isArray(urls) || urls.length === 0) return;
+    this.abortController ??= new AbortController();
+    const { signal } = this.abortController;
+    const stream = {
+      urls,
+      buffers: [],
+      interval,
+      background: false,
+      primary: false,
+      lastPlayedUrl: null,
+      lastPlayed: null,
+    };
+    this.scheduleNextPeriodicClip(gen, stream, signal);
+  }
+
+  scheduleNextPeriodicClip(gen, stream, signal) {
+    if (!this.isPlaying || this.generation !== gen || signal.aborted) return;
+
+    const [minDelay = 1, maxDelay = 1.5] =
+      stream.interval ?? DEFAULT_CLIP_INTERVAL;
+    const delaySec = this.randomFn() * (maxDelay - minDelay) + minDelay;
+
+    const timeoutId = setTimeout(async () => {
+      this.clipTimeouts.delete(timeoutId);
+      if (!this.isPlaying || this.generation !== gen || signal.aborted) return;
+
+      let randomIndex = Math.floor(this.randomFn() * stream.urls.length);
+      if (
+        stream.urls.length > 1 &&
+        stream.urls.at(randomIndex) === stream.lastPlayedUrl
+      ) {
+        randomIndex = (randomIndex + 1) % stream.urls.length;
+      }
+      const url = stream.urls.at(randomIndex);
+      if (!url) return;
+      stream.lastPlayedUrl = url;
+
+      const decoded = await this.fetchAndDecodeClip(url, signal);
+      if (!this.isPlaying || this.generation !== gen || signal.aborted) return;
+
+      if (decoded) {
+        stream.buffers = [decoded];
+        stream.lastPlayed = null;
+        this.playRandomClip(stream);
+      }
+      this.scheduleNextPeriodicClip(gen, stream, signal);
+    }, delaySec * 1000);
+    this.clipTimeouts.add(timeoutId);
   }
 
   async startSampledNoise(
@@ -318,8 +370,6 @@ export class NoiseEngine {
       interval = DEFAULT_CLIP_INTERVAL,
       background = false,
       waitForClip = false,
-      initialDelay = false,
-      primary = !background,
     } = {},
   ) {
     this.abortController ??= new AbortController();
@@ -329,19 +379,17 @@ export class NoiseEngine {
       interval,
       background,
       waitForClip,
-      initialDelay,
-      primary,
       started: false,
       lastPlayed: null,
     };
-    if (primary) {
+    if (!background) {
       this.activeBuffers = stream.buffers;
     }
 
     const uncachedUrls = this.partitionCachedUrls(urls, stream.buffers);
     if (stream.buffers.length > 0) {
       this.startStreamLoop(gen, stream);
-    } else if (uncachedUrls.length > 0 && primary) {
+    } else if (uncachedUrls.length > 0 && !background) {
       this.setLoading(true);
     }
 
@@ -377,7 +425,7 @@ export class NoiseEngine {
       !signal.aborted &&
       this.generation === gen &&
       !stream.started &&
-      primary
+      !background
     ) {
       this.setLoading(false);
     }
@@ -409,10 +457,10 @@ export class NoiseEngine {
     }
   }
 
-  scheduleNextClip(gen, stream, { skipPlay = false } = {}) {
+  scheduleNextClip(gen, stream) {
     if (!this.isPlaying || this.generation !== gen) return;
 
-    const duration = skipPlay ? 0 : this.playRandomClip(stream);
+    const duration = this.playRandomClip(stream);
     let nextDelaySec;
     if (stream?.background) {
       nextDelaySec = Math.max(1, (duration || 10) - 1);

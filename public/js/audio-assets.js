@@ -191,7 +191,6 @@ export const NOISE_MODES = new Map([
         {
           urls: screamingUrls,
           interval: [50, 70],
-          initialDelay: true,
         },
       ],
       artwork: "/img/spooky.jpg",
