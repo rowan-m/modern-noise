@@ -102,6 +102,16 @@ test("social preview metadata images and emoji font subset in index.html are val
     doc.body.textContent.match(/\p{Extended_Pictographic}/gu) ?? [];
   const uniqueBodyEmojis = Array.from(new Set(bodyEmojiMatches)).sort();
   expect(fontGlyphs).toEqual(uniqueBodyEmojis);
+
+  const modulePreloads = Array.from(
+    doc.querySelectorAll('link[rel="modulepreload"]'),
+  ).map((el) => el.getAttribute("href"));
+  expect(modulePreloads).toEqual([
+    "/js/ui.js",
+    "/js/audio-assets.js",
+    "/js/noise-engine.js",
+    "/js/dsp.js",
+  ]);
 });
 
 test("manifest.json icons exist on disk", () => {

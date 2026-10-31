@@ -280,4 +280,51 @@ describe("NoiseEngine", () => {
 
     engine.stop();
   });
+
+  test("does not queue or leak audio nodes while AudioContext is suspended and bounds sampleBufferCache", async () => {
+    const ctx = new MockAudioContext();
+    const createBufferSourceSpy = vi.spyOn(ctx, "createBufferSource");
+    const createOscillatorSpy = vi.spyOn(ctx, "createOscillator");
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+    });
+
+    const engine = new NoiseEngine({
+      createAudioContext: () => ctx,
+      fetchFn,
+      randomFn: () => 0,
+    });
+
+    engine.setNoiseType("spooky");
+    engine.start();
+    await vi.advanceTimersByTimeAsync(0);
+
+    // LRU cache is bounded to 24 entries even though spooky decodes 47 clips
+    expect(engine.sampleBufferCache.size).toBeLessThanOrEqual(24);
+    const sourcesCreatedWhileRunning = createBufferSourceSpy.mock.calls.length;
+
+    // Simulate background OS suspension while engine.isPlaying remains true
+    ctx.state = "suspended";
+    ctx.resume.mockImplementation(() => Promise.resolve());
+
+    vi.advanceTimersByTime(10000);
+    expect(createBufferSourceSpy).toHaveBeenCalledTimes(
+      sourcesCreatedWhileRunning,
+    );
+    expect(ctx.resume).toHaveBeenCalled();
+
+    // Switching to beeping while suspended must not allocate oscillators
+    engine.setNoiseType("beeping");
+    vi.advanceTimersByTime(3000);
+    expect(createOscillatorSpy).not.toHaveBeenCalled();
+
+    // Once AudioContext returns to running, next tick creates oscillator normally
+    ctx.state = "running";
+    vi.advanceTimersByTime(600);
+    expect(createOscillatorSpy).toHaveBeenCalledTimes(1);
+
+    engine.stop();
+  });
 });
