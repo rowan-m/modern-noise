@@ -44,6 +44,26 @@ function updateMediaSessionPlayback(isPlaying) {
   }
 }
 
+function bindMediaSessionHandlers(startPlayback, stopPlayback) {
+  if (!("mediaSession" in navigator)) return;
+  navigator.mediaSession.setActionHandler("play", startPlayback);
+  navigator.mediaSession.setActionHandler("pause", stopPlayback);
+  navigator.mediaSession.setActionHandler("stop", stopPlayback);
+}
+
+function bindVisibilityRecovery(root, engine, backgroundAudio) {
+  const doc = root.ownerDocument ?? root;
+  doc.addEventListener?.("visibilitychange", () => {
+    if (doc.visibilityState !== "visible" || !engine.isPlaying) return;
+    engine.ensureAudioGraph();
+    if (backgroundAudio?.paused) {
+      backgroundAudio.play().catch((error) => {
+        console.error("Error resuming background audio:", error);
+      });
+    }
+  });
+}
+
 function getInitialSoundFromUrl() {
   if (typeof window === "undefined" || !window.location) return "white";
   const requested = new URLSearchParams(window.location.search)
@@ -167,11 +187,8 @@ export function initApp({ root = document, engineOptions = {} } = {}) {
     volumeSlider.addEventListener("input", syncVolumeFromSlider);
   }
 
-  if ("mediaSession" in navigator) {
-    navigator.mediaSession.setActionHandler("play", startPlayback);
-    navigator.mediaSession.setActionHandler("pause", stopPlayback);
-    navigator.mediaSession.setActionHandler("stop", stopPlayback);
-  }
+  bindMediaSessionHandlers(startPlayback, stopPlayback);
+  bindVisibilityRecovery(root, engine, backgroundAudio);
 
   syncModeUi(engine.noiseType);
 

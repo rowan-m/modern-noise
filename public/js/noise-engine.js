@@ -10,10 +10,16 @@ const COLOURED_GENERATORS = new Map([
 const BUFFER_DURATION_SECONDS = 10;
 const DECODE_CONCURRENCY = 4;
 const DEFAULT_CLIP_INTERVAL = [1, 1.5];
+const MAX_CACHED_SAMPLE_BUFFERS = 24;
+const SAMPLE_RATE = 22050;
 
 function defaultCreateAudioContext() {
   const ContextClass = window.AudioContext || window.webkitAudioContext;
-  return new ContextClass();
+  try {
+    return new ContextClass({ sampleRate: SAMPLE_RATE });
+  } catch {
+    return new ContextClass();
+  }
 }
 
 export class NoiseEngine {
@@ -59,19 +65,24 @@ export class NoiseEngine {
     this.onLoadingChange(loading);
   }
 
+  isAudioContextRunning() {
+    if (!this.audioContext) return false;
+    const { state } = this.audioContext;
+    if (state === "suspended" || state === "interrupted") {
+      this.audioContext.resume?.().catch((error) => {
+        console.error("Error resuming AudioContext:", error);
+      });
+      return false;
+    }
+    return true;
+  }
+
   ensureAudioGraph() {
     if (!this.audioContext) {
       this.audioContext = this.createAudioContext();
     }
 
-    if (
-      this.audioContext.state === "suspended" ||
-      this.audioContext.state === "interrupted"
-    ) {
-      this.audioContext.resume?.().catch((error) => {
-        console.error("Error resuming AudioContext:", error);
-      });
-    }
+    this.isAudioContextRunning();
 
     if (!this.compressor) {
       this.compressor = this.audioContext.createDynamicsCompressor();
@@ -237,36 +248,43 @@ export class NoiseEngine {
   startBeepingNoise(gen) {
     if (!this.isPlaying || this.generation !== gen) return;
 
-    const oscillator = this.audioContext.createOscillator();
-    oscillator.type = "sine";
-    oscillator.frequency.value = 2400;
+    this.stopAndDisconnectNode(this.activeOscillator, "oscillator");
+    this.activeOscillator = null;
+    this.activeBeepGain?.disconnect();
+    this.activeBeepGain = null;
 
-    const beepGain = this.audioContext.createGain();
-    const now = this.audioContext.currentTime;
     const beepInterval = 0.2;
-    const rampTime = 0.01;
+    if (this.isAudioContextRunning()) {
+      const oscillator = this.audioContext.createOscillator();
+      oscillator.type = "sine";
+      oscillator.frequency.value = 2400;
 
-    beepGain.gain.setValueAtTime(0, now);
-    beepGain.gain.linearRampToValueAtTime(1, now + rampTime);
-    beepGain.gain.linearRampToValueAtTime(0, now + beepInterval);
+      const beepGain = this.audioContext.createGain();
+      const now = this.audioContext.currentTime;
+      const rampTime = 0.01;
 
-    oscillator.connect(beepGain);
-    beepGain.connect(this.masterGain);
+      beepGain.gain.setValueAtTime(0, now);
+      beepGain.gain.linearRampToValueAtTime(1, now + rampTime);
+      beepGain.gain.linearRampToValueAtTime(0, now + beepInterval);
 
-    this.activeOscillator = oscillator;
-    this.activeBeepGain = beepGain;
+      oscillator.connect(beepGain);
+      beepGain.connect(this.masterGain);
 
-    oscillator.onended = () => {
-      oscillator.disconnect();
-      beepGain.disconnect();
-      if (this.activeOscillator === oscillator) {
-        this.activeOscillator = null;
-        this.activeBeepGain = null;
-      }
-    };
+      this.activeOscillator = oscillator;
+      this.activeBeepGain = beepGain;
 
-    oscillator.start(now);
-    oscillator.stop(now + beepInterval + 0.1);
+      oscillator.onended = () => {
+        oscillator.disconnect();
+        beepGain.disconnect();
+        if (this.activeOscillator === oscillator) {
+          this.activeOscillator = null;
+          this.activeBeepGain = null;
+        }
+      };
+
+      oscillator.start(now);
+      oscillator.stop(now + beepInterval + 0.1);
+    }
 
     if (this.beepingTimeout) {
       clearTimeout(this.beepingTimeout);
@@ -287,11 +305,32 @@ export class NoiseEngine {
     return copy;
   }
 
+  getCachedSampleBuffer(url) {
+    if (!this.sampleBufferCache.has(url)) return null;
+    const buffer = this.sampleBufferCache.get(url);
+    this.sampleBufferCache.delete(url);
+    this.sampleBufferCache.set(url, buffer);
+    return buffer;
+  }
+
+  cacheSampleBuffer(url, buffer) {
+    if (this.sampleBufferCache.has(url)) {
+      this.sampleBufferCache.delete(url);
+    } else if (this.sampleBufferCache.size >= MAX_CACHED_SAMPLE_BUFFERS) {
+      const oldestUrl = this.sampleBufferCache.keys().next().value;
+      if (oldestUrl !== undefined) {
+        this.sampleBufferCache.delete(oldestUrl);
+      }
+    }
+    this.sampleBufferCache.set(url, buffer);
+  }
+
   partitionCachedUrls(urls, targetBuffers) {
     const uncachedUrls = [];
     for (const url of urls) {
-      if (this.sampleBufferCache.has(url)) {
-        targetBuffers.push(this.sampleBufferCache.get(url));
+      const cached = this.getCachedSampleBuffer(url);
+      if (cached) {
+        targetBuffers.push(cached);
       } else {
         uncachedUrls.push(url);
       }
@@ -418,7 +457,8 @@ export class NoiseEngine {
       }
     };
 
-    const workerCount = Math.min(DECODE_CONCURRENCY, orderedUrls.length);
+    const maxWorkers = background ? 1 : DECODE_CONCURRENCY;
+    const workerCount = Math.min(maxWorkers, orderedUrls.length);
     await Promise.all(Array.from({ length: workerCount }, () => runWorker()));
 
     if (
@@ -432,8 +472,9 @@ export class NoiseEngine {
   }
 
   async fetchAndDecodeClip(url, signal) {
-    if (this.sampleBufferCache.has(url)) {
-      return this.sampleBufferCache.get(url);
+    const cached = this.getCachedSampleBuffer(url);
+    if (cached) {
+      return cached;
     }
     try {
       const response = await this.fetchFn(url, { signal });
@@ -446,7 +487,7 @@ export class NoiseEngine {
       if (signal.aborted) return null;
 
       const decoded = await this.audioContext.decodeAudioData(arrayBuffer);
-      this.sampleBufferCache.set(url, decoded);
+      this.cacheSampleBuffer(url, decoded);
       return decoded;
     } catch (error) {
       if (error?.name === "AbortError" || signal.aborted) {
@@ -484,7 +525,7 @@ export class NoiseEngine {
     stream = { buffers: this.activeBuffers, lastPlayed: this.lastPlayedBuffer },
   ) {
     const buffers = stream.buffers;
-    if (!this.audioContext || buffers.length === 0) return 0;
+    if (!this.isAudioContextRunning() || buffers.length === 0) return 0;
 
     let randomIndex = Math.floor(this.randomFn() * buffers.length);
     if (buffers.length > 1 && buffers.at(randomIndex) === stream.lastPlayed) {
