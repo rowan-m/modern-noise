@@ -327,4 +327,53 @@ describe("NoiseEngine", () => {
 
     engine.stop();
   });
+
+  test("plays sd-squelchy button press/release sprites on the shared AudioContext bypassing masterGain", async () => {
+    const ctx = new MockAudioContext();
+    const sources = [];
+    const origCreateSource = ctx.createBufferSource.bind(ctx);
+    ctx.createBufferSource = vi.fn(() => {
+      const source = origCreateSource();
+      sources.push(source);
+      return source;
+    });
+
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 503 })
+      .mockResolvedValue({
+        ok: true,
+        status: 200,
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(16)),
+      });
+
+    const engine = new NoiseEngine({
+      createAudioContext: () => ctx,
+      fetchFn,
+      randomFn: () => 0.5,
+    });
+
+    // Failed preload degrades silently without creating AudioContext and allows retry
+    await engine.preloadButtonSound();
+    expect(engine.audioContext).toBeNull();
+
+    engine.playButtonSound("press");
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(ctx.decodeAudioData).toHaveBeenCalledTimes(1);
+    expect(engine.buttonGain.gain.value).toBe(0.5);
+    expect(engine.buttonGain.connect).toHaveBeenCalledWith(ctx.destination);
+    expect(sources).toHaveLength(1);
+    expect(sources[0].connect).toHaveBeenCalledWith(engine.buttonGain);
+    expect(sources[0].start).toHaveBeenCalledWith(0, 4, 0.19);
+
+    sources[0].onended();
+    expect(sources[0].disconnect).toHaveBeenCalledTimes(1);
+
+    // Subsequent release uses cached buffer synchronously without re-decoding
+    engine.playButtonSound("release");
+    expect(ctx.decodeAudioData).toHaveBeenCalledTimes(1);
+    expect(sources).toHaveLength(2);
+    expect(sources[1].start).toHaveBeenCalledWith(0, 4.2, 0.79);
+  });
 });

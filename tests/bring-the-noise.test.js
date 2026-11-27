@@ -213,17 +213,14 @@ test("manifest.json uses valid image/jpeg MIME types and distinct icons", async 
   }
 });
 
-test("initApp wires tactile button sounds to all .noise-button controls", async () => {
+test("initApp wires tactile button sounds to .noise-button controls", async () => {
   renderAppFixture();
-  const buttonCtx = new MockAudioContext();
-  buttonCtx.decodeAudioData = vi
-    .fn()
-    .mockResolvedValue({ duration: 6.5, sampleRate: 48000 });
-  const createdSources = [];
-  const origCreateSource = buttonCtx.createBufferSource.bind(buttonCtx);
-  buttonCtx.createBufferSource = vi.fn(() => {
+  const ctx = new MockAudioContext();
+  const sources = [];
+  const origCreateSource = ctx.createBufferSource.bind(ctx);
+  ctx.createBufferSource = vi.fn(() => {
     const source = origCreateSource();
-    createdSources.push(source);
+    sources.push(source);
     return source;
   });
 
@@ -233,9 +230,9 @@ test("initApp wires tactile button sounds to all .noise-button controls", async 
     arrayBuffer: () => Promise.resolve(new ArrayBuffer(16)),
   });
 
-  const app = noise.initApp({
-    buttonSoundOptions: {
-      createAudioContext: () => buttonCtx,
+  noise.initApp({
+    engineOptions: {
+      createAudioContext: () => ctx,
       fetchFn,
       randomFn: () => 0,
     },
@@ -244,15 +241,16 @@ test("initApp wires tactile button sounds to all .noise-button controls", async 
   expect(fetchFn).toHaveBeenCalledWith(noise.BUTTON_SOUND_URL);
 
   const whiteButton = document.querySelector("#white");
+  whiteButton.dispatchEvent(new MouseEvent("pointerdown", { button: 2 }));
+  expect(sources).toHaveLength(0);
+
   whiteButton.dispatchEvent(new MouseEvent("pointerdown", { button: 0 }));
   await new Promise((resolve) => setTimeout(resolve, 0));
 
-  expect(createdSources).toHaveLength(1);
-  expect(createdSources[0].start).toHaveBeenCalledWith(0, 1, 0.19);
+  expect(sources).toHaveLength(1);
+  expect(sources[0].start).toHaveBeenCalledWith(0, 1, 0.19);
 
   window.dispatchEvent(new MouseEvent("pointerup", { button: 0 }));
-  expect(createdSources).toHaveLength(2);
-  expect(createdSources[1].start).toHaveBeenCalledWith(0, 1.2, 0.79);
-
-  app.cleanupButtonSounds();
+  expect(sources).toHaveLength(2);
+  expect(sources[1].start).toHaveBeenCalledWith(0, 1.2, 0.79);
 });

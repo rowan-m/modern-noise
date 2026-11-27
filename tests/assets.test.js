@@ -122,7 +122,6 @@ test("social preview metadata images and emoji font subset in index.html are val
   expect(modulePreloads).toEqual([
     "/js/ui.js",
     "/js/audio-assets.js",
-    "/js/button-sounds.js",
     "/js/noise-engine.js",
     "/js/dsp.js",
   ]);

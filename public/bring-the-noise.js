@@ -11,11 +11,6 @@ export {
   trafficUrls,
 } from "./js/audio-assets.js";
 export {
-  BUTTON_SOUND_SPRITES,
-  ButtonSoundPlayer,
-  wireButtonSounds,
-} from "./js/button-sounds.js";
-export {
   brownNoiseBuffer,
   pinkNoiseBuffer,
   whiteNoiseBuffer,

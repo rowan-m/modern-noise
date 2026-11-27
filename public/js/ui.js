@@ -1,5 +1,4 @@
 import { NOISE_MODES, NOISE_TYPES } from "./audio-assets.js";
-import { ButtonSoundPlayer, wireButtonSounds } from "./button-sounds.js";
 import { NoiseEngine } from "./noise-engine.js";
 
 export function formatVolumePercent(gainLevel) {
@@ -86,22 +85,13 @@ function updateSoundInUrl(noiseType) {
   window.history.replaceState(null, "", url);
 }
 
-export function initApp({
-  root = document,
-  engineOptions = {},
-  buttonSoundOptions = {},
-} = {}) {
+export function initApp({ root = document, engineOptions = {} } = {}) {
   const backgroundAudio = root.querySelector("audio");
   if (backgroundAudio) {
     backgroundAudio.loop = true;
   }
 
   const engine = new NoiseEngine(engineOptions);
-  const buttonSounds = new ButtonSoundPlayer(buttonSoundOptions);
-  const cleanupButtonSounds = wireButtonSounds(
-    root.querySelectorAll(".noise-button"),
-    buttonSounds,
-  );
   const initialSound = getInitialSoundFromUrl();
   if (initialSound !== engine.noiseType) {
     engine.setNoiseType(initialSound);
@@ -180,6 +170,22 @@ export function initApp({
       ?.addEventListener("click", () => selectNoiseType(type));
   }
 
+  const noiseButtons = root.querySelectorAll(".noise-button");
+  if (noiseButtons.length > 0) {
+    void engine.preloadButtonSound();
+  }
+  for (const button of noiseButtons) {
+    button.addEventListener("pointerdown", (event) => {
+      if (event.button > 0) return;
+      engine.playButtonSound("press");
+      window.addEventListener(
+        "pointerup",
+        () => engine.playButtonSound("release"),
+        { once: true },
+      );
+    });
+  }
+
   const volumeSlider = root.querySelector("#volume-slider");
   const syncVolumeFromSlider = () => {
     if (!volumeSlider) return;
@@ -204,8 +210,6 @@ export function initApp({
 
   return {
     engine,
-    buttonSounds,
-    cleanupButtonSounds,
     startPlayback,
     stopPlayback,
     selectNoiseType,
