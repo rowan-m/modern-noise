@@ -170,21 +170,15 @@ export function initApp({ root = document, engineOptions = {} } = {}) {
       ?.addEventListener("click", () => selectNoiseType(type));
   }
 
-  const noiseButtons = root.querySelectorAll(".noise-button");
-  if (noiseButtons.length > 0) {
-    void engine.preloadButtonSound();
-  }
-  for (const button of noiseButtons) {
-    button.addEventListener("pointerdown", (event) => {
-      if (event.button > 0) return;
-      engine.playButtonSound("press");
-      window.addEventListener(
-        "pointerup",
-        () => engine.playButtonSound("release"),
-        { once: true },
-      );
-    });
-  }
+  root.querySelector("#buttons")?.addEventListener("pointerdown", (event) => {
+    if (event.button > 0 || !event.target.closest?.(".noise-button")) return;
+    void engine.playButtonSound("press");
+    window.addEventListener(
+      "pointerup",
+      () => void engine.playButtonSound("release"),
+      { once: true },
+    );
+  });
 
   const volumeSlider = root.querySelector("#volume-slider");
   const syncVolumeFromSlider = () => {

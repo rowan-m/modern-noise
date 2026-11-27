@@ -40,9 +40,7 @@ export class NoiseEngine {
     this.masterGain = null;
     this.buttonGain = null;
     this.compressor = null;
-    this.buttonSoundBytes = null;
-    this.buttonSoundBuffer = null;
-    this.buttonSoundDecode = null;
+    this.buttonSoundPromise = null;
     this.gainLevel = 1;
     this.isPlaying = false;
     this.isLoading = false;
@@ -112,67 +110,32 @@ export class NoiseEngine {
     }
   }
 
-  preloadButtonSound() {
-    if (this.buttonSoundBuffer) return Promise.resolve(null);
-    this.buttonSoundBytes ??= this.fetchFn(BUTTON_SOUND_URL)
-      .then((res) => (res?.ok ? res.arrayBuffer() : null))
-      .catch(() => null)
-      .then((bytes) => {
-        if (!bytes) this.buttonSoundBytes = null;
-        return bytes;
+  loadButtonSound() {
+    this.buttonSoundPromise ??= this.fetchFn(BUTTON_SOUND_URL)
+      .then((res) => {
+        if (!res?.ok) throw new Error(`HTTP ${res?.status}`);
+        return res.arrayBuffer();
+      })
+      .then((bytes) => this.audioContext.decodeAudioData(bytes))
+      .catch(() => {
+        this.buttonSoundPromise = null;
+        return null;
       });
-    return this.buttonSoundBytes;
+    return this.buttonSoundPromise;
   }
 
-  loadButtonSoundBuffer() {
-    if (this.buttonSoundBuffer) {
-      return Promise.resolve(this.buttonSoundBuffer);
-    }
-    this.buttonSoundDecode ??= this.preloadButtonSound()
-      .then((bytes) =>
-        bytes ? this.audioContext.decodeAudioData(bytes.slice(0)) : null,
-      )
-      .catch(() => null)
-      .then((buffer) => {
-        this.buttonSoundDecode = null;
-        if (buffer) {
-          this.buttonSoundBuffer = buffer;
-          this.buttonSoundBytes = null;
-        }
-        return buffer;
-      });
-    return this.buttonSoundDecode;
-  }
-
-  playButtonSound(variant = "press") {
+  async playButtonSound(variant = "press") {
     this.ensureAudioGraph();
+    const buffer = await this.loadButtonSound();
+    if (!buffer || !this.isAudioContextRunning()) return;
+
     const index = Math.floor(this.randomFn() * BUTTON_SOUND_SAMPLES);
     const isRelease = variant === "release";
-    const offset = index + (isRelease ? 1.2 : 1);
-    const duration = isRelease ? 0.79 : 0.19;
-
-    const play = (buffer) => {
-      if (!buffer || !this.isAudioContextRunning()) return;
-      const source = this.audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.onended = () => source.disconnect();
-      source.connect(this.buttonGain);
-      source.start(0, offset, duration);
-    };
-
-    if (this.buttonSoundBuffer && this.isAudioContextRunning()) {
-      play(this.buttonSoundBuffer);
-      return;
-    }
-
-    const { state } = this.audioContext;
-    const ready =
-      state === "suspended" || state === "interrupted"
-        ? this.audioContext.resume?.().catch(() => {})
-        : Promise.resolve();
-    void Promise.all([ready, this.loadButtonSoundBuffer()]).then(([, buffer]) =>
-      play(buffer),
-    );
+    const source = this.audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.onended = () => source.disconnect();
+    source.connect(this.buttonGain);
+    source.start(0, index + (isRelease ? 1.2 : 1), isRelease ? 0.79 : 0.19);
   }
 
   start() {

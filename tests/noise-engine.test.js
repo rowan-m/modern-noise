@@ -353,12 +353,11 @@ describe("NoiseEngine", () => {
       randomFn: () => 0.5,
     });
 
-    // Failed preload degrades silently without creating AudioContext and allows retry
-    await engine.preloadButtonSound();
-    expect(engine.audioContext).toBeNull();
+    // Failed fetch degrades silently and allows a later click to retry
+    await engine.playButtonSound("press");
+    expect(sources).toHaveLength(0);
 
-    engine.playButtonSound("press");
-    await vi.advanceTimersByTimeAsync(0);
+    await engine.playButtonSound("press");
 
     expect(ctx.decodeAudioData).toHaveBeenCalledTimes(1);
     expect(engine.buttonGain.gain.value).toBe(0.5);
@@ -370,8 +369,9 @@ describe("NoiseEngine", () => {
     sources[0].onended();
     expect(sources[0].disconnect).toHaveBeenCalledTimes(1);
 
-    // Subsequent release uses cached buffer synchronously without re-decoding
-    engine.playButtonSound("release");
+    // Subsequent release reuses cached decoded buffer without re-fetching or re-decoding
+    await engine.playButtonSound("release");
+    expect(fetchFn).toHaveBeenCalledTimes(2);
     expect(ctx.decodeAudioData).toHaveBeenCalledTimes(1);
     expect(sources).toHaveLength(2);
     expect(sources[1].start).toHaveBeenCalledWith(0, 4.2, 0.79);
