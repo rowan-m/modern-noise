@@ -1,6 +1,7 @@
 import { initApp } from "./js/ui.js";
 
 export {
+  BUTTON_SOUND_URL,
   buildingUrls,
   NOISE_MODES,
   NOISE_TYPES,
@@ -9,6 +10,11 @@ export {
   spookyUrls,
   trafficUrls,
 } from "./js/audio-assets.js";
+export {
+  BUTTON_SOUND_SPRITES,
+  ButtonSoundPlayer,
+  wireButtonSounds,
+} from "./js/button-sounds.js";
 export {
   brownNoiseBuffer,
   pinkNoiseBuffer,

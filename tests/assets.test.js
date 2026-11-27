@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { expect, test } from "vitest";
 import {
+  BUTTON_SOUND_URL,
   buildingUrls,
   NOISE_MODES,
   screamingUrls,
@@ -49,6 +50,18 @@ test("every configured audio clip URL exists on disk in public/, with no orphan 
       `Missing Freesound credit in README.md for clip ${url}`,
     ).toBe(true);
   }
+});
+
+test("button sound sprite exists on disk and is credited in README.md", () => {
+  const buttonSoundPath = path.join(PUBLIC_DIR, BUTTON_SOUND_URL);
+  expect(
+    fs.existsSync(buttonSoundPath),
+    `Missing button sound asset: ${BUTTON_SOUND_URL}`,
+  ).toBe(true);
+
+  const readme = fs.readFileSync(path.join(ROOT_DIR, "README.md"), "utf8");
+  expect(readme).toContain("https://buttons.joshwcomeau.com/");
+  expect(readme).toContain("sd-squelchy");
 });
 
 test("every noise mode artwork image exists on disk in public/", () => {
@@ -109,6 +122,7 @@ test("social preview metadata images and emoji font subset in index.html are val
   expect(modulePreloads).toEqual([
     "/js/ui.js",
     "/js/audio-assets.js",
+    "/js/button-sounds.js",
     "/js/noise-engine.js",
     "/js/dsp.js",
   ]);

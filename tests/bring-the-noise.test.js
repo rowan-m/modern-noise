@@ -1,5 +1,6 @@
-import { beforeEach, expect, test } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
 import * as noise from "../public/bring-the-noise.js";
+import { MockAudioContext } from "./setup.js";
 
 function renderAppFixture() {
   document.body.innerHTML = `
@@ -210,4 +211,48 @@ test("manifest.json uses valid image/jpeg MIME types and distinct icons", async 
     expect(icon.type).toBe("image/jpeg");
     expect(icon.purpose).toBe("any");
   }
+});
+
+test("initApp wires tactile button sounds to all .noise-button controls", async () => {
+  renderAppFixture();
+  const buttonCtx = new MockAudioContext();
+  buttonCtx.decodeAudioData = vi
+    .fn()
+    .mockResolvedValue({ duration: 6.5, sampleRate: 48000 });
+  const createdSources = [];
+  const origCreateSource = buttonCtx.createBufferSource.bind(buttonCtx);
+  buttonCtx.createBufferSource = vi.fn(() => {
+    const source = origCreateSource();
+    createdSources.push(source);
+    return source;
+  });
+
+  const fetchFn = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(16)),
+  });
+
+  const app = noise.initApp({
+    buttonSoundOptions: {
+      createAudioContext: () => buttonCtx,
+      fetchFn,
+      randomFn: () => 0,
+    },
+  });
+
+  expect(fetchFn).toHaveBeenCalledWith(noise.BUTTON_SOUND_URL);
+
+  const whiteButton = document.querySelector("#white");
+  whiteButton.dispatchEvent(new MouseEvent("pointerdown", { button: 0 }));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(createdSources).toHaveLength(1);
+  expect(createdSources[0].start).toHaveBeenCalledWith(0, 1, 0.19);
+
+  window.dispatchEvent(new MouseEvent("pointerup", { button: 0 }));
+  expect(createdSources).toHaveLength(2);
+  expect(createdSources[1].start).toHaveBeenCalledWith(0, 1.2, 0.79);
+
+  app.cleanupButtonSounds();
 });

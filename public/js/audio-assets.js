@@ -1,3 +1,5 @@
+export const BUTTON_SOUND_URL = "/audio/buttons/sd-squelchy.mp3";
+
 export const screamingUrls = [
   "/audio/screams/132106__sironboy__woman-scream.aac",
   "/audio/screams/13797__sweetneo85__wilhelm.aac",
