@@ -1,4 +1,4 @@
-import { NOISE_MODES } from "./audio-assets.js";
+import { BUTTON_SOUND_URL, NOISE_MODES } from "./audio-assets.js";
 import { brownNoiseBuffer, pinkNoiseBuffer, whiteNoiseBuffer } from "./dsp.js";
 
 const COLOURED_GENERATORS = new Map([
@@ -8,6 +8,8 @@ const COLOURED_GENERATORS = new Map([
 ]);
 
 const BUFFER_DURATION_SECONDS = 10;
+const BUTTON_SOUND_SAMPLES = 6;
+const BUTTON_SOUND_VOLUME = 0.5;
 const DECODE_CONCURRENCY = 4;
 const DEFAULT_CLIP_INTERVAL = [1, 1.5];
 const MAX_CACHED_SAMPLE_BUFFERS = 24;
@@ -36,7 +38,9 @@ export class NoiseEngine {
 
     this.audioContext = null;
     this.masterGain = null;
+    this.buttonGain = null;
     this.compressor = null;
+    this.buttonSoundPromise = null;
     this.gainLevel = 1;
     this.isPlaying = false;
     this.isLoading = false;
@@ -98,6 +102,40 @@ export class NoiseEngine {
       this.masterGain = this.audioContext.createGain();
       this.masterGain.connect(this.compressor);
     }
+
+    if (!this.buttonGain) {
+      this.buttonGain = this.audioContext.createGain();
+      this.buttonGain.gain.value = BUTTON_SOUND_VOLUME;
+      this.buttonGain.connect(this.audioContext.destination);
+    }
+  }
+
+  loadButtonSound() {
+    this.buttonSoundPromise ??= this.fetchFn(BUTTON_SOUND_URL)
+      .then((res) => {
+        if (!res?.ok) throw new Error(`HTTP ${res?.status}`);
+        return res.arrayBuffer();
+      })
+      .then((bytes) => this.audioContext.decodeAudioData(bytes))
+      .catch(() => {
+        this.buttonSoundPromise = null;
+        return null;
+      });
+    return this.buttonSoundPromise;
+  }
+
+  async playButtonSound(variant = "press") {
+    this.ensureAudioGraph();
+    const buffer = await this.loadButtonSound();
+    if (!buffer || !this.isAudioContextRunning()) return;
+
+    const index = Math.floor(this.randomFn() * BUTTON_SOUND_SAMPLES);
+    const isRelease = variant === "release";
+    const source = this.audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.onended = () => source.disconnect();
+    source.connect(this.buttonGain);
+    source.start(0, index + (isRelease ? 1.2 : 1), isRelease ? 0.79 : 0.19);
   }
 
   start() {

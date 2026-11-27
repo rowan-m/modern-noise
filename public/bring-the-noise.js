@@ -1,6 +1,7 @@
 import { initApp } from "./js/ui.js";
 
 export {
+  BUTTON_SOUND_URL,
   buildingUrls,
   NOISE_MODES,
   NOISE_TYPES,

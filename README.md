@@ -39,6 +39,10 @@ git add package.json package-lock.json
 
 ## Sounds
 
+### Buttons
+
+Button press and release audio (`sd-squelchy`) from [Button Sounds](https://buttons.joshwcomeau.com/) by Josh Comeau ([joshwcomeau/button-sounds](https://github.com/joshwcomeau/button-sounds), MIT License).
+
 ### Screams
 
 https://freesound.org/people/akridiy/sounds/759454/  
